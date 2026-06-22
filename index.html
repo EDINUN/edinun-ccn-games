@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<!--
+  Landing del repo EDINUN GAMES · Ciencias Naturales.
+  Lista los juegos disponibles bajo juegos/<slug>/. La skill
+  edinun-game-builder regenera este archivo cada vez que añade un juego.
+
+  Embebe inline (idéntico a cualquier juegos/<slug>/{logo,characters}.jsx) y
+  un literal GAMES = [{ slug, title, charId }, ...] con un card por juego.
+
+  Notas:
+   - El landing carga su logo+CSS desde la raíz del repo (./edinun-logo.png,
+     ./styles.css). Se mantiene copia maestra en raíz para esto.
+   - Los personajes usan CharacterAvatar → ./assets/char-<id>.png en la raíz;
+     mantener copia de los 4 PNG en raíz/assets/ para el landing.
+-->
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>EDINUN GAMES · Ciencias Naturales</title>
+    <link rel="icon" type="image/png" href="./edinun-logo.png" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel" data-presets="react">
+// logo.jsx — Logo EDINUN usando el PNG oficial dorado.
+function EdinunLogo({ size = 180, glow = true }) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        position: "relative",
+        filter: glow
+          ? "drop-shadow(0 0 28px rgba(242,194,96,0.45)) drop-shadow(0 6px 12px rgba(0,0,0,0.45))"
+          : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+      }}
+    >
+      {glow && (
+        <div
+          style={{
+            position: "absolute",
+            inset: "-6%",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(242,194,96,0.22) 0%, rgba(242,194,96,0.08) 45%, transparent 75%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <img
+        src="assets/edinun-logo.png"
+        alt="EDINUN — Ediciones Nacionales Unidas"
+        style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", display: "block" }}
+      />
+    </div>
+  );
+}
+
+function EdinunLogoMini({ size = 40 }) {
+  return (
+    <img
+      src="assets/edinun-logo.png"
+      alt="EDINUN"
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))",
+      }}
+    />
+  );
+}
+
+Object.assign(window, { EdinunLogo, EdinunLogoMini });
+
+
+// characters.jsx — Personajes EDINUN GAMES (PNG de assets/char-<id>.png).
+function Sparkles({ color = "#fce9a8", count = 6, seed = 1 }) {
+  const pts = Array.from({ length: count }, (_, i) => {
+    const a = (i * 360) / count + seed * 37;
+    const r = 70 + (i % 3) * 8;
+    const x = 100 + Math.cos((a * Math.PI) / 180) * r;
+    const y = 100 + Math.sin((a * Math.PI) / 180) * r;
+    const s = 2 + (i % 3);
+    return { x, y, s, delay: i * 0.35 };
+  });
+  return (
+    <g>
+      {pts.map((p, i) => (
+        <g key={i} transform={`translate(${p.x} ${p.y})`}>
+          <circle r={p.s} fill={color} opacity="0.9">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" begin={`${p.delay}s`} repeatCount="indefinite" />
+          </circle>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function makeCharacter(id, sparkleColor, sparkleSeed) {
+  return function Character({ size = 200, floating = true }) {
+    return (
+      <div
+        className={floating ? "ed-float-soft" : ""}
+        style={{
+          width: size, height: size,
+          position: "relative",
+          display: "inline-block",
+          lineHeight: 0,
+        }}
+      >
+        <img
+          src={`assets/char-${id}.png`}
+          alt=""
+          draggable="false"
+          style={{
+            width: "100%", height: "100%",
+            objectFit: "contain",
+            display: "block",
+            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.35))",
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        />
+        <svg
+          viewBox="0 0 200 200"
+          aria-hidden="true"
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            pointerEvents: "none",
+            overflow: "visible",
+          }}
+        >
+          <Sparkles color={sparkleColor} count={6} seed={sparkleSeed} />
+        </svg>
+      </div>
+    );
+  };
+}
+
+const MagoCharacter = makeCharacter("mago", "#fce9a8", 1);
+const FisicaCharacter = makeCharacter("fisica", "#ff5fb3", 2);
+const NumerologoCharacter = makeCharacter("numero", "#4fd8ff", 3);
+const GeometraCharacter = makeCharacter("geo", "#7bf5c4", 4);
+
+function CharacterAvatar({ char, size = 56 }) {
+  const map = {
+    mago: MagoCharacter,
+    fisica: FisicaCharacter,
+    numero: NumerologoCharacter,
+    geo: GeometraCharacter,
+  };
+  const C = map[char] || MagoCharacter;
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: "radial-gradient(circle at 30% 30%, rgba(138,90,242,.8), rgba(18,10,55,.95))",
+      boxShadow: "inset 0 0 0 2px rgba(242,194,96,.8), 0 0 14px rgba(138,90,242,.45)",
+      display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+    }}>
+      <div style={{ transform: `translateY(${size * 0.06}px) scale(1.15)` }}>
+        <C size={size} floating={false} />
+      </div>
+    </div>
+  );
+}
+
+const CHARACTERS = [
+  {
+    id: "mago",
+    name: "Merlín",
+    title: "El Mago",
+    specialty: "Maestro de los hechizos",
+    quote: "¡Abracadabra! Con un pase de varita, todo es posible.",
+    Component: MagoCharacter,
+  },
+  {
+    id: "fisica",
+    name: "Nova",
+    title: "La Física",
+    specialty: "Exploradora del cosmos",
+    quote: "El universo está lleno de misterios esperando a ser descubiertos.",
+    Component: FisicaCharacter,
+  },
+  {
+    id: "numero",
+    name: "Cifra",
+    title: "El Numerólogo",
+    specialty: "Guardián de los dígitos",
+    quote: "¡Vamos a contar una gran aventura juntos!",
+    Component: NumerologoCharacter,
+  },
+  {
+    id: "geo",
+    name: "Pita",
+    title: "La Geómetra",
+    specialty: "Arquitecta de las formas",
+    quote: "Todo en el universo tiene una forma perfecta.",
+    Component: GeometraCharacter,
+  },
+];
+
+Object.assign(window, {
+  MagoCharacter,
+  FisicaCharacter,
+  NumerologoCharacter,
+  GeometraCharacter,
+  CharacterAvatar,
+  CHARACTERS,
+});
+
+
+// GAMES — un card por juego. La skill edinun-game-builder rellena este array.
+// Cada slug DEBE coincidir byte a byte con un folder real en juegos/.
+const GAMES = [];
+
+function Landing() {
+  return (
+    <div style={{ minHeight: "100dvh", padding: "60px 24px", background: "#050214", color: "#f6f1ff" }}>
+      <div className="ed-cosmos" style={{ position: "fixed", inset: 0, zIndex: 0 }} />
+      <div className="ed-glyphs" style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 48 }}>
+          <EdinunLogo size={220} />
+          <p className="ed-body" style={{ marginTop: 16, fontSize: 16, textAlign: "center", maxWidth: 520 }}>
+            Elige un juego para explorar las Ciencias Naturales con Merlín, Nova, Cifra y Pita.
+          </p>
+        </div>
+
+        {/* Grid de tarjetas */}
+        {GAMES.length === 0 ? (
+          <div style={{ textAlign: "center", color: "rgba(246,241,255,0.5)", padding: 40 }}>
+            Aún no hay juegos disponibles.
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: 20,
+          }}>
+            {GAMES.map((g) => {
+              const char = CHARACTERS.find((c) => c.id === g.charId) || CHARACTERS[0];
+              return (
+                <a
+                  key={g.slug}
+                  href={`juegos/${g.slug}/`}
+                  className="ed-card"
+                  style={{
+                    padding: 18,
+                    textDecoration: "none",
+                    color: "inherit",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                    transition: "transform 0.2s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-4px)"}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = "none"}
+                >
+                  <div style={{ width: 120, height: 120 }}>
+                    <char.Component size={120} floating={false} />
+                  </div>
+                  <h2 className="ed-h1" style={{ fontSize: 18, textAlign: "center", margin: 0 }}>
+                    {g.title}
+                  </h2>
+                  <button className="ed-btn ed-btn-primary" style={{ padding: "8px 22px", fontSize: 14, marginTop: 4 }}>
+                    Jugar →
+                  </button>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ marginTop: 60, textAlign: "center", color: "rgba(246,241,255,0.45)", fontSize: 12, fontFamily: "var(--ed-font-mono)" }}>
+          EDINUN GAMES · Ciencias Naturales · {new Date().getFullYear()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<Landing />);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+uploads/
+design-canvas.jsx
+.DS_Store
+Thumbs.db
+# Solo ignoramos los settings locales de Claude Code; la skill del repo
+# (.claude/skills/edinun-game-builder) SÍ se versiona para que viaje con el repo.
+.claude/settings.local.json
+.responsive/
+/reponsive
+node_modules/
+package-lock.json
+juegos/*/.planning/qa-screenshots/
+juegos/*/.planning/qa-results.json
+juegos/*/counts/
+juegos/*/visits.txt
