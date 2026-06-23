@@ -73,7 +73,7 @@ Tras añadir/quitar/renombrar un juego, actualizar el array verificando:
 
 - cada `slug:` coincide con un folder real en `juegos/` (y `_PLANTILLA` NUNCA va
   en `GAMES`),
-- `charId` ∈ {`mago`, `fisica`, `numero`, `geo`} y matchea al personaje destacado,
+- `charId` ∈ {`astronauta`, `naturalista`, `quimica`, `geologo`} y matchea al personaje destacado,
 - el código inline de `logo`/`characters` coincide con el de los juegos.
 
 ## Después de cualquier tarea

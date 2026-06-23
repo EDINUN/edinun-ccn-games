@@ -5,7 +5,7 @@
 - **Tema** y a qué parte del currículo/libro mapea.
 - **Mecánica** (opción múltiple, arrastrar, clasificar, ordenar, emparejar…).
 - **Edad objetivo** (típico CCNN 9-12).
-- **Personaje destacado** (`charId`: mago / fisica / numero / geo).
+- **Personaje destacado** (`charId`: astronauta / naturalista / quimica / geologo).
 - **Slug**: `JUEGO-N-<kebab-case>` con N = siguiente ordinal libre en `juegos/`.
 
 ## 1. Clonar la PLANTILLA

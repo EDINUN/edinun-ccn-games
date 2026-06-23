@@ -66,8 +66,8 @@ Reglas EDINUN que la mecánica debe respetar (ver `USER.md` y
 
 ### Personajes
 
-Catálogo compartido: Merlín (mago), Nova (física), Cifra (numerólogo), Pita
-(geómetra). **Personaje destacado en el landing: {{charId}}.**
+Catálogo compartido: Luna (astronauta), Bruno (naturalista), Mía (química), Tomi
+(geólogo). **Personaje destacado en el landing: {{charId}}.**
 
 ## Contador de visitas
 

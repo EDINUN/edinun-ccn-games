@@ -8,10 +8,47 @@
 const { useState, useEffect, useRef, useMemo } = React;
 
 // ─────────────────────────────────────────────────────────────
-// Fondo cósmico + glifos flotantes.
-// Los glifos son decorativos (baja opacidad). Cámbialos por símbolos
-// afines al tema del juego (aquí: ciencia genérica).  // ← PERSONALIZAR
+// Fondo + glifos decorativos del tema (ciclo vital). Mismo patrón que la
+// referencia edinun-language/juego-19: arrays {c,l,t,r,s} con emojis a color
+// mezclados con algún símbolo, renderizados con .map.  // ← PERSONALIZAR
+//   c = carácter/emoji · l/t = posición · r = rotación · s = fontSize (em)
 // ─────────────────────────────────────────────────────────────
+const CHALK_GLYPHS = [
+  { c: "🥚", l: "5%",  t: "12%", r: "-8deg",  s: "0.55em" },
+  { c: "🦋", l: "16%", t: "27%", r: "6deg",   s: "0.5em"  },
+  { c: "🌿", l: "30%", t: "11%", r: "-5deg",  s: "0.46em" },
+  { c: "🐝", l: "58%", t: "12%", r: "-4deg",  s: "0.48em" },
+  { c: "🐣", l: "73%", t: "9%",  r: "8deg",   s: "0.55em" },
+  { c: "🐛", l: "90%", t: "15%", r: "6deg",   s: "0.52em" },
+  { c: "★",  l: "44%", t: "8%",  r: "4deg",   s: "0.5em"  },
+  { c: "🐢", l: "3%",  t: "45%", r: "-6deg",  s: "0.55em" },
+  { c: "🐸", l: "95%", t: "44%", r: "-8deg",  s: "0.52em" },
+  { c: "🌸", l: "86%", t: "56%", r: "8deg",   s: "0.46em" },
+  { c: "🐟", l: "7%",  t: "80%", r: "12deg",  s: "0.55em" },
+  { c: "🌸", l: "30%", t: "86%", r: "-4deg",  s: "0.48em" },
+  { c: "🐞", l: "66%", t: "88%", r: "5deg",   s: "0.5em"  },
+  { c: "🍃", l: "82%", t: "80%", r: "-10deg", s: "0.5em"  },
+];
+
+const COSMIC_GLYPHS = [
+  { c: "🦋", l: "5%",  t: "10%", r: "-8deg",  s: "0.6em"  },
+  { c: "🐣", l: "84%", t: "6%",  r: "6deg",   s: "0.62em" },
+  { c: "🌸", l: "92%", t: "72%", r: "-12deg", s: "0.58em" },
+  { c: "🐢", l: "3%",  t: "82%", r: "12deg",  s: "0.58em" },
+  { c: "✦",  l: "46%", t: "4%",  r: "-4deg",  s: "0.5em"  },
+  { c: "🐝", l: "7%",  t: "46%", r: "-4deg",  s: "0.52em" },
+  { c: "★",  l: "88%", t: "40%", r: "8deg",   s: "0.5em"  },
+  { c: "🥚", l: "22%", t: "22%", r: "10deg",  s: "0.5em"  },
+  { c: "🐸", l: "70%", t: "22%", r: "-6deg",  s: "0.52em" },
+  { c: "🐞", l: "32%", t: "70%", r: "8deg",   s: "0.5em"  },
+  { c: "🌿", l: "62%", t: "78%", r: "-10deg", s: "0.52em" },
+  { c: "✦",  l: "18%", t: "58%", r: "14deg",  s: "0.46em" },
+  { c: "🐟", l: "78%", t: "56%", r: "-8deg",  s: "0.5em"  },
+  { c: "🐛", l: "50%", t: "88%", r: "4deg",   s: "0.5em"  },
+  { c: "★",  l: "40%", t: "38%", r: "-6deg",  s: "0.46em" },
+  { c: "🌸", l: "12%", t: "33%", r: "6deg",   s: "0.48em" },
+];
+
 function CosmosBg({ variant = "cosmic", glyphSize }) {
   const glyphsStyle = glyphSize ? { fontSize: glyphSize + "px" } : undefined;
   if (variant === "chalkboard") {
@@ -26,16 +63,9 @@ function CosmosBg({ variant = "cosmic", glyphSize }) {
         }}
       >
         <div className="ed-glyphs" style={{ color: "rgba(255,255,255,0.10)", ...glyphsStyle }}>
-          <span style={{ left: "6%", top: "12%", "--rot": "-8deg", fontSize: "0.7em" }}>⚛</span>
-          <span style={{ left: "82%", top: "16%", "--rot": "6deg", fontSize: "0.65em" }}>✿</span>
-          <span style={{ left: "10%", top: "78%", "--rot": "12deg", fontSize: "0.7em" }}>☀</span>
-          <span style={{ left: "88%", top: "72%", "--rot": "-10deg", fontSize: "0.7em" }}>❄</span>
-          <span style={{ left: "45%", top: "8%", "--rot": "4deg", fontSize: "0.55em" }}>~</span>
-          <span style={{ left: "3%", top: "45%", "--rot": "-4deg", fontSize: "0.7em" }}>⚗</span>
-          <span style={{ left: "92%", top: "45%", "--rot": "8deg", fontSize: "0.65em" }}>△</span>
-          <span style={{ left: "30%", top: "55%", "--rot": "-6deg", fontSize: "0.5em" }}>○</span>
-          <span style={{ left: "70%", top: "62%", "--rot": "8deg", fontSize: "0.5em" }}>∿</span>
-          <span style={{ left: "55%", top: "30%", "--rot": "-4deg", fontSize: "0.55em" }}>✦</span>
+          {CHALK_GLYPHS.map((g, i) => (
+            <span key={i} style={{ left: g.l, top: g.t, "--rot": g.r, ...(g.s ? { fontSize: g.s } : {}) }}>{g.c}</span>
+          ))}
         </div>
       </div>
     );
@@ -44,21 +74,9 @@ function CosmosBg({ variant = "cosmic", glyphSize }) {
     <>
       <div className="ed-cosmos" />
       <div className="ed-glyphs" style={glyphsStyle}>
-        <span style={{ left: "5%", top: "10%", "--rot": "-8deg", fontSize: "0.85em" }}>⚛</span>
-        <span style={{ left: "84%", top: "6%", "--rot": "6deg", fontSize: "0.78em" }}>✿</span>
-        <span style={{ left: "92%", top: "72%", "--rot": "-12deg", fontSize: "0.74em" }}>☀</span>
-        <span style={{ left: "3%", top: "82%", "--rot": "12deg", fontSize: "0.78em" }}>❄</span>
-        <span style={{ left: "46%", top: "4%", "--rot": "-4deg", fontSize: "0.59em" }}>~</span>
-        <span style={{ left: "7%", top: "46%", "--rot": "-4deg", fontSize: "0.7em" }}>⚗</span>
-        <span style={{ left: "88%", top: "40%", "--rot": "8deg", fontSize: "0.62em" }}>△</span>
-        <span style={{ left: "22%", top: "22%", "--rot": "10deg", fontSize: "0.55em" }}>∿</span>
-        <span style={{ left: "70%", top: "24%", "--rot": "-6deg", fontSize: "0.65em" }}>○</span>
-        <span style={{ left: "32%", top: "70%", "--rot": "8deg", fontSize: "0.6em" }}>✦</span>
-        <span style={{ left: "62%", top: "78%", "--rot": "-10deg", fontSize: "0.55em" }}>☁</span>
-        <span style={{ left: "18%", top: "58%", "--rot": "14deg", fontSize: "0.52em" }}>∞</span>
-        <span style={{ left: "78%", top: "56%", "--rot": "-8deg", fontSize: "0.5em" }}>○</span>
-        <span style={{ left: "50%", top: "88%", "--rot": "4deg", fontSize: "0.55em" }}>⚛</span>
-        <span style={{ left: "40%", top: "38%", "--rot": "-6deg", fontSize: "0.5em" }}>✿</span>
+        {COSMIC_GLYPHS.map((g, i) => (
+          <span key={i} style={{ left: g.l, top: g.t, "--rot": g.r, ...(g.s ? { fontSize: g.s } : {}) }}>{g.c}</span>
+        ))}
       </div>
     </>
   );
@@ -229,7 +247,7 @@ function HomeScreen({ app, setApp, go }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 520 }}>
           <div>
             <div className="ed-label" style={{ color: "#4fd8ff", marginBottom: 8 }}>
-              EDINUN · Ciencias Naturales {/* ← PERSONALIZAR: tema del juego */}
+              EDINUN · El ciclo de la vida {/* ← PERSONALIZAR: tema del juego */}
             </div>
             <h1 className="ed-h1" style={{ fontSize: 44, lineHeight: 1.05 }}>
               ¡Bienvenido/a,{" "}
@@ -254,7 +272,7 @@ function HomeScreen({ app, setApp, go }) {
             color: "#fce9a8",
             textAlign: "center",
           }}>
-            Explora la ciencia jugando. {/* ← PERSONALIZAR: subtítulo corto */}
+            ¿Cómo nacen y crecen los animales? 🐣 {/* ← PERSONALIZAR: subtítulo corto */}
           </div>
 
           <div>
@@ -296,8 +314,8 @@ function CharacterScreen({ app, setApp, go }) {
     setApp((s) => ({
       ...s,
       character: sel,
-      currentCategory: "demo",
-      currentCatLabel: "Ciencias Naturales",
+      currentCategory: "ciclo-vital",
+      currentCatLabel: "El ciclo de la vida",
     }));
     go("game");
   }

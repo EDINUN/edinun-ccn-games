@@ -145,19 +145,19 @@ function makeCharacter(id, sparkleColor, sparkleSeed) {
   };
 }
 
-const MagoCharacter = makeCharacter("mago", "#fce9a8", 1);
-const FisicaCharacter = makeCharacter("fisica", "#ff5fb3", 2);
-const NumerologoCharacter = makeCharacter("numero", "#4fd8ff", 3);
-const GeometraCharacter = makeCharacter("geo", "#7bf5c4", 4);
+const AstronautaCharacter = makeCharacter("astronauta", "#8fb8ff", 1);
+const NaturalistaCharacter = makeCharacter("naturalista", "#86e57f", 2);
+const QuimicaCharacter = makeCharacter("quimica", "#ff8fc7", 3);
+const GeologoCharacter = makeCharacter("geologo", "#ffce6b", 4);
 
 function CharacterAvatar({ char, size = 56 }) {
   const map = {
-    mago: MagoCharacter,
-    fisica: FisicaCharacter,
-    numero: NumerologoCharacter,
-    geo: GeometraCharacter,
+    astronauta: AstronautaCharacter,
+    naturalista: NaturalistaCharacter,
+    quimica: QuimicaCharacter,
+    geologo: GeologoCharacter,
   };
-  const C = map[char] || MagoCharacter;
+  const C = map[char] || AstronautaCharacter;
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
@@ -174,44 +174,44 @@ function CharacterAvatar({ char, size = 56 }) {
 
 const CHARACTERS = [
   {
-    id: "mago",
-    name: "Merlín",
-    title: "El Mago",
-    specialty: "Maestro de los hechizos",
-    quote: "¡Abracadabra! Con un pase de varita, todo es posible.",
-    Component: MagoCharacter,
+    id: "astronauta",
+    name: "Luna",
+    title: "La Astronauta",
+    specialty: "Exploradora del espacio",
+    quote: "¡Vamos a viajar por los planetas!",
+    Component: AstronautaCharacter,
   },
   {
-    id: "fisica",
-    name: "Nova",
-    title: "La Física",
-    specialty: "Exploradora del cosmos",
-    quote: "El universo está lleno de misterios esperando a ser descubiertos.",
-    Component: FisicaCharacter,
+    id: "naturalista",
+    name: "Bruno",
+    title: "El Naturalista",
+    specialty: "Amigo de plantas y animales",
+    quote: "¡Descubramos la naturaleza juntos!",
+    Component: NaturalistaCharacter,
   },
   {
-    id: "numero",
-    name: "Cifra",
-    title: "El Numerólogo",
-    specialty: "Guardián de los dígitos",
-    quote: "¡Vamos a contar una gran aventura juntos!",
-    Component: NumerologoCharacter,
+    id: "quimica",
+    name: "Mía",
+    title: "La Científica",
+    specialty: "Maestra de los experimentos",
+    quote: "¡Vamos a mezclar y descubrir!",
+    Component: QuimicaCharacter,
   },
   {
-    id: "geo",
-    name: "Pita",
-    title: "La Geómetra",
-    specialty: "Arquitecta de las formas",
-    quote: "Todo en el universo tiene una forma perfecta.",
-    Component: GeometraCharacter,
+    id: "geologo",
+    name: "Tomi",
+    title: "El Geólogo",
+    specialty: "Explorador de rocas y volcanes",
+    quote: "¡La Tierra esconde mil tesoros!",
+    Component: GeologoCharacter,
   },
 ];
 
 Object.assign(window, {
-  MagoCharacter,
-  FisicaCharacter,
-  NumerologoCharacter,
-  GeometraCharacter,
+  AstronautaCharacter,
+  NaturalistaCharacter,
+  QuimicaCharacter,
+  GeologoCharacter,
   CharacterAvatar,
   CHARACTERS,
 });
@@ -219,7 +219,9 @@ Object.assign(window, {
 
 // GAMES — un card por juego. La skill edinun-game-builder rellena este array.
 // Cada slug DEBE coincidir byte a byte con un folder real en juegos/.
-const GAMES = [];
+const GAMES = [
+  { slug: "JUEGO-1-ciclo-vital-animales", title: "El ciclo de la vida", charId: "naturalista" },
+];
 
 function Landing() {
   return (
@@ -231,7 +233,7 @@ function Landing() {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 48 }}>
           <EdinunLogo size={220} />
           <p className="ed-body" style={{ marginTop: 16, fontSize: 16, textAlign: "center", maxWidth: 520 }}>
-            Elige un juego para explorar las Ciencias Naturales con Merlín, Nova, Cifra y Pita.
+            Elige un juego para explorar las Ciencias Naturales con Luna, Bruno, Mía y Tomi.
           </p>
         </div>
 

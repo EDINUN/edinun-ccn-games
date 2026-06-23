@@ -114,7 +114,7 @@ function Sparkles({ color = "#fce9a8", count = 6, seed = 1 }) {
 // ─────────────────────────────────────────────────────────────
 // Fábrica de componentes — cada personaje es un PNG con sparkles
 // superpuestos. Se exportan con los nombres que ya consume el resto
-// de la app: MagoCharacter, FisicaCharacter, etc.
+// de la app: AstronautaCharacter, NaturalistaCharacter, etc.
 // ─────────────────────────────────────────────────────────────
 function makeCharacter(id, sparkleColor, sparkleSeed) {
   return function Character({ size = 200, floating = true }) {
@@ -160,10 +160,10 @@ function makeCharacter(id, sparkleColor, sparkleSeed) {
   };
 }
 
-const MagoCharacter = makeCharacter("mago", "#fce9a8", 1);
-const FisicaCharacter = makeCharacter("fisica", "#ff5fb3", 2);
-const NumerologoCharacter = makeCharacter("numero", "#4fd8ff", 3);
-const GeometraCharacter = makeCharacter("geo", "#7bf5c4", 4);
+const AstronautaCharacter = makeCharacter("astronauta", "#8fb8ff", 1);
+const NaturalistaCharacter = makeCharacter("naturalista", "#86e57f", 2);
+const QuimicaCharacter = makeCharacter("quimica", "#ff8fc7", 3);
+const GeologoCharacter = makeCharacter("geologo", "#ffce6b", 4);
 
 // ─────────────────────────────────────────────────────────────
 // Avatar compacto (HUD / perfil / cards). Mantiene el marco circular
@@ -171,12 +171,12 @@ const GeometraCharacter = makeCharacter("geo", "#7bf5c4", 4);
 // ─────────────────────────────────────────────────────────────
 function CharacterAvatar({ char, size = 56 }) {
   const map = {
-    mago: MagoCharacter,
-    fisica: FisicaCharacter,
-    numero: NumerologoCharacter,
-    geo: GeometraCharacter,
+    astronauta: AstronautaCharacter,
+    naturalista: NaturalistaCharacter,
+    quimica: QuimicaCharacter,
+    geologo: GeologoCharacter,
   };
-  const C = map[char] || MagoCharacter;
+  const C = map[char] || AstronautaCharacter;
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%",
@@ -196,44 +196,44 @@ function CharacterAvatar({ char, size = 56 }) {
 // ─────────────────────────────────────────────────────────────
 const CHARACTERS = [
   {
-    id: "mago",
-    name: "Merlín",
-    title: "El Mago",
-    specialty: "Maestro de los hechizos",
-    quote: "¡Abracadabra! Con un pase de varita, todo es posible.",
-    Component: MagoCharacter,
+    id: "astronauta",
+    name: "Luna",
+    title: "La Astronauta",
+    specialty: "Exploradora del espacio",
+    quote: "¡Vamos a viajar por los planetas!",
+    Component: AstronautaCharacter,
   },
   {
-    id: "fisica",
-    name: "Nova",
-    title: "La Física",
-    specialty: "Exploradora del cosmos",
-    quote: "El universo está lleno de misterios esperando a ser descubiertos.",
-    Component: FisicaCharacter,
+    id: "naturalista",
+    name: "Bruno",
+    title: "El Naturalista",
+    specialty: "Amigo de plantas y animales",
+    quote: "¡Descubramos la naturaleza juntos!",
+    Component: NaturalistaCharacter,
   },
   {
-    id: "numero",
-    name: "Cifra",
-    title: "El Numerólogo",
-    specialty: "Guardián de los dígitos",
-    quote: "¡Vamos a contar una gran aventura juntos!",
-    Component: NumerologoCharacter,
+    id: "quimica",
+    name: "Mía",
+    title: "La Científica",
+    specialty: "Maestra de los experimentos",
+    quote: "¡Vamos a mezclar y descubrir!",
+    Component: QuimicaCharacter,
   },
   {
-    id: "geo",
-    name: "Pita",
-    title: "La Geómetra",
-    specialty: "Arquitecta de las formas",
-    quote: "Todo en el universo tiene una forma perfecta.",
-    Component: GeometraCharacter,
+    id: "geologo",
+    name: "Tomi",
+    title: "El Geólogo",
+    specialty: "Explorador de rocas y volcanes",
+    quote: "¡La Tierra esconde mil tesoros!",
+    Component: GeologoCharacter,
   },
 ];
 
 Object.assign(window, {
-  MagoCharacter,
-  FisicaCharacter,
-  NumerologoCharacter,
-  GeometraCharacter,
+  AstronautaCharacter,
+  NaturalistaCharacter,
+  QuimicaCharacter,
+  GeologoCharacter,
   CharacterAvatar,
   CHARACTERS,
 });
@@ -528,7 +528,7 @@ function HomeScreen({ app, setApp, go }) {
 // 2. SELECCIÓN DE PERSONAJE
 // ─────────────────────────────────────────────────────────────
 function CharacterScreen({ app, setApp, go }) {
-  const [sel, setSel] = useState(app.character || "fisica");
+  const [sel, setSel] = useState(app.character || "astronauta");
   const current = CHARACTERS.find((c) => c.id === sel) || CHARACTERS[0];
 
   function choose() {
@@ -1396,7 +1396,7 @@ function App() {
   const [route, setRoute] = useStateA("home");
   const [app, setApp] = useStateA({
     studentName: "",
-    character: "mago",
+    character: "astronauta",
     level: "basic",
     stars: 0,
     sessionStart: Date.now(),

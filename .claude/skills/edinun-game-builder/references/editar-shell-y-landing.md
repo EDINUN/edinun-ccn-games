@@ -33,7 +33,7 @@ El landing embebe inline:
 Al regenerar, verificar:
 - cada `slug:` coincide **byte a byte** con un folder real en `juegos/`,
 - **`_PLANTILLA` nunca aparece en `GAMES`**,
-- `charId` ∈ {`mago`, `fisica`, `numero`, `geo`} y matchea al personaje destacado
+- `charId` ∈ {`astronauta`, `naturalista`, `quimica`, `geologo`} y matchea al personaje destacado
   del juego,
 - el `<title>`, subtítulo y favicon siguen apuntando a CCNN y a `./assets/`,
   `./styles.css`, `./edinun-logo.png` (rutas relativas a la raíz).

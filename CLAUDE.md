@@ -60,7 +60,7 @@ Si Python no está disponible (caso del autor: el `python` del PATH son stubs de
 powershell -ExecutionPolicy Bypass -File .planning\bundle.ps1
 ```
 
-Ambos concatenan los 5 `.jsx` en el orden `logo → characters → screens → game-screens → app` y reemplazan el bloque `<script type="text/babel">…</script>` en ambos HTML, manteniéndolos idénticos.
+Ambos concatenan los 5 `.jsx` en el orden `logo → characters → screens → game-screens → app` y reescriben en ambos HTML **desde la etiqueta ancla `<script type="text/babel" data-presets="react">` hasta `</html>`** (regeneran el cierre `</script></body></html>` de cero, lo que sana un HTML corrompido por un bundle previo roto), manteniéndolos idénticos. Si esa etiqueta ancla falta en un HTML, el bundle aborta con «No se encontró el bloque `<script babel>`» — no la renombres ni le cambies los atributos.
 
 **Invariante crítica del bundle:** ningún `.jsx` puede contener literal `</script>` (cerraría el bloque del navegador). Si se necesita dentro de un template literal, partirlo: `${"<\\/scr"+"ipt>"}`.
 
@@ -110,4 +110,6 @@ Los juegos se suben a `https://www.edinun.com/...` (Apache + PHP) carpeta por ca
 
 ## Regenerar el landing
 
-`index.html` raíz embebe inline el código de `logo.jsx` + `characters.jsx` y un literal `GAMES = [{ slug, title, charId }, ...]` con un card por juego. Tras añadir / quitar / renombrar un juego, regenerar este array verificando que cada `slug:` coincide con un folder real en `juegos/` y que `charId` ∈ {`mago`, `fisica`, `numero`, `geo`}.
+`index.html` raíz embebe inline el código de `logo.jsx` + `characters.jsx` y un literal `GAMES = [{ slug, title, charId }, ...]` con un card por juego. Tras añadir / quitar / renombrar un juego, regenerar este array verificando que cada `slug:` coincide con un folder real en `juegos/` y que `charId` ∈ {`astronauta`, `naturalista`, `quimica`, `geologo`}.
+
+**Catálogo de personajes** (compartido por todos los juegos; el `charId` del card debe matchear al personaje destacado): `astronauta` = Luna, `naturalista` = Bruno, `quimica` = Mía, `geologo` = Tomi. Cada uno tiene su `assets/char-<charId>.png`.

@@ -12,5 +12,6 @@ accionable y sin jerga, ajustado a la edad.
 | Juego (slug) | Edad objetivo | Notas |
 |--------------|:-------------:|-------|
 | _PLANTILLA   | — | demo, no publicable |
+| JUEGO-1-ciclo-vital-animales | 6 | "Mira y toca" (quiz visual con emojis); ciclo vital: ovíparo/vivíparo, crecimiento, metamorfosis. Sin timer, sin voz. |
 
 > (Se irá completando a medida que se creen juegos.)
