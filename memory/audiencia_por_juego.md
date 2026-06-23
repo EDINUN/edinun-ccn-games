@@ -13,5 +13,6 @@ accionable y sin jerga, ajustado a la edad.
 |--------------|:-------------:|-------|
 | _PLANTILLA   | — | demo, no publicable |
 | JUEGO-1-ciclo-vital-animales | 6 | "Mira y toca" (quiz visual con emojis); ciclo vital: ovíparo/vivíparo, crecimiento, metamorfosis. Sin timer, sin voz. |
+| JUEGO-2-la-semilla | 6 | "Mira y toca" + planta que crece (ilustraciones crece-1..4); la semilla: necesidades, el fruto guarda semillas, dispersión, partes de la planta. Guía Mía (química). |
 
 > (Se irá completando a medida que se creen juegos.)

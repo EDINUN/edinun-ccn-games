@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0826">
+<meta name="description" content="EDINUN GAMES — Juegos de Ciencias Naturales para estudiantes.">
+<title>EDINUN GAMES — La semilla</title>
+
+<link rel="icon" type="image/png" href="assets/edinun-logo.png">
+<link rel="apple-touch-icon" href="assets/edinun-logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root"></div>
+<noscript style="position:fixed;inset:0;display:grid;place-items:center;background:#0b0826;color:#fce9a8;font-family:sans-serif;text-align:center;padding:24px;">EDINUN GAMES requiere JavaScript habilitado.</noscript>
+
+<script type="text/babel" data-presets="react">
+// logo.jsx — Logo EDINUN usando el PNG oficial dorado.
+// Nada de reconstruir en SVG: mantenemos el asset original impecable.
+
+function EdinunLogo({ size = 180, glow = true }) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        position: "relative",
+        filter: glow
+          ? "drop-shadow(0 0 28px rgba(242,194,96,0.45)) drop-shadow(0 6px 12px rgba(0,0,0,0.45))"
+          : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+      }}
+    >
+      {glow && (
+        <div
+          style={{
+            position: "absolute",
+            inset: "-6%",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(242,194,96,0.22) 0%, rgba(242,194,96,0.08) 45%, transparent 75%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <img
+        src="assets/edinun-logo.png"
+        alt="EDINUN — Ediciones Nacionales Unidas"
+        style={{ width: "100%", height: "100%", objectFit: "contain", position: "relative", display: "block" }}
+      />
+    </div>
+  );
+}
+
+// Versión compacta (HUD) — mismo PNG, tamaño pequeño
+function EdinunLogoMini({ size = 40 }) {
+  return (
+    <img
+      src="assets/edinun-logo.png"
+      alt="EDINUN"
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))",
+      }}
+    />
+  );
+}
+
+Object.assign(window, { EdinunLogo, EdinunLogoMini });
+
+// characters.jsx — Personajes EDINUN GAMES.
+// Renderizan los PNG de assets/char-<id>.png generados con Nano Banana.
+// El componente expone la misma API que la versión SVG anterior
+// (props `size`, `floating`) para no romper a los consumidores
+// (GameScreen, CharacterScreen, ResultsScreen, ProfileScreen, CharacterAvatar).
+
+// ─────────────────────────────────────────────────────────────
+// Sparkles — chispas animadas alrededor del personaje. Sobreviven de
+// la versión SVG porque dan vida y refuerzan la estética cósmica.
+// ─────────────────────────────────────────────────────────────
+function Sparkles({ color = "#fce9a8", count = 6, seed = 1 }) {
+  const pts = Array.from({ length: count }, (_, i) => {
+    const a = (i * 360) / count + seed * 37;
+    const r = 70 + (i % 3) * 8;
+    const x = 100 + Math.cos((a * Math.PI) / 180) * r;
+    const y = 100 + Math.sin((a * Math.PI) / 180) * r;
+    const s = 2 + (i % 3);
+    return { x, y, s, delay: i * 0.35 };
+  });
+  return (
+    <g>
+      {pts.map((p, i) => (
+        <g key={i} transform={`translate(${p.x} ${p.y})`}>
+          <circle r={p.s} fill={color} opacity="0.9">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" begin={`${p.delay}s`} repeatCount="indefinite" />
+          </circle>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Fábrica de componentes — cada personaje es un PNG con sparkles
+// superpuestos. Se exportan con los nombres que ya consume el resto
+// de la app: AstronautaCharacter, NaturalistaCharacter, etc.
+// ─────────────────────────────────────────────────────────────
+function makeCharacter(id, sparkleColor, sparkleSeed) {
+  return function Character({ size = 200, floating = true }) {
+    return (
+      <div
+        className={floating ? "ed-float-soft" : ""}
+        style={{
+          width: size, height: size,
+          position: "relative",
+          display: "inline-block",
+          lineHeight: 0,
+        }}
+      >
+        <img
+          src={`assets/char-${id}.png`}
+          alt=""
+          draggable="false"
+          style={{
+            width: "100%", height: "100%",
+            objectFit: "contain",
+            display: "block",
+            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.35))",
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Sparkles overlay — viewBox 200×200 para mantener las posiciones
+            relativas idénticas a la versión SVG previa. */}
+        <svg
+          viewBox="0 0 200 200"
+          aria-hidden="true"
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            pointerEvents: "none",
+            overflow: "visible",
+          }}
+        >
+          <Sparkles color={sparkleColor} count={6} seed={sparkleSeed} />
+        </svg>
+      </div>
+    );
+  };
+}
+
+const AstronautaCharacter = makeCharacter("astronauta", "#8fb8ff", 1);
+const NaturalistaCharacter = makeCharacter("naturalista", "#86e57f", 2);
+const QuimicaCharacter = makeCharacter("quimica", "#ff8fc7", 3);
+const GeologoCharacter = makeCharacter("geologo", "#ffce6b", 4);
+
+// ─────────────────────────────────────────────────────────────
+// Avatar compacto (HUD / perfil / cards). Mantiene el marco circular
+// dorado/violeta original y encuadra el PNG dentro.
+// ─────────────────────────────────────────────────────────────
+function CharacterAvatar({ char, size = 56 }) {
+  const map = {
+    astronauta: AstronautaCharacter,
+    naturalista: NaturalistaCharacter,
+    quimica: QuimicaCharacter,
+    geologo: GeologoCharacter,
+  };
+  const C = map[char] || AstronautaCharacter;
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: "radial-gradient(circle at 30% 30%, rgba(138,90,242,.8), rgba(18,10,55,.95))",
+      boxShadow: "inset 0 0 0 2px rgba(242,194,96,.8), 0 0 14px rgba(138,90,242,.45)",
+      display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+    }}>
+      <div style={{ transform: `translateY(${size * 0.06}px) scale(1.15)` }}>
+        <C size={size} floating={false} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Catálogo de personajes (id, nombre, frase, componente)
+// ─────────────────────────────────────────────────────────────
+const CHARACTERS = [
+  {
+    id: "astronauta",
+    name: "Luna",
+    title: "La Astronauta",
+    specialty: "Exploradora del espacio",
+    quote: "¡Vamos a viajar por los planetas!",
+    Component: AstronautaCharacter,
+  },
+  {
+    id: "naturalista",
+    name: "Bruno",
+    title: "El Naturalista",
+    specialty: "Amigo de plantas y animales",
+    quote: "¡Descubramos la naturaleza juntos!",
+    Component: NaturalistaCharacter,
+  },
+  {
+    id: "quimica",
+    name: "Mía",
+    title: "La Científica",
+    specialty: "Maestra de los experimentos",
+    quote: "¡Vamos a mezclar y descubrir!",
+    Component: QuimicaCharacter,
+  },
+  {
+    id: "geologo",
+    name: "Tomi",
+    title: "El Geólogo",
+    specialty: "Explorador de rocas y volcanes",
+    quote: "¡La Tierra esconde mil tesoros!",
+    Component: GeologoCharacter,
+  },
+];
+
+Object.assign(window, {
+  AstronautaCharacter,
+  NaturalistaCharacter,
+  QuimicaCharacter,
+  GeologoCharacter,
+  CharacterAvatar,
+  CHARACTERS,
+});
+
+// screens.jsx — Pantallas base del shell EDINUN GAMES (Ciencias Naturales).
+// Importa (globalmente) CHARACTERS, EdinunLogo, EdinunLogoMini.
+//
+// PLANTILLA: este archivo es el shell compartido. Solo personaliza por juego
+// los textos marcados con  // ← PERSONALIZAR  y los glifos del CosmosBg.
+// La lógica del contador de visitas NO se toca (es idéntica en todos los juegos).
+
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ─────────────────────────────────────────────────────────────
+// Fondo + glifos decorativos del tema (la semilla). Mismo patrón que la
+// referencia edinun-language/juego-19: arrays {c,l,t,r,s} con emojis a color
+// mezclados con algún símbolo, renderizados con .map.  // ← PERSONALIZAR
+//   c = carácter/emoji · l/t = posición · r = rotación · s = fontSize (em)
+// ─────────────────────────────────────────────────────────────
+const CHALK_GLYPHS = [
+  { c: "🌱", l: "5%",  t: "12%", r: "-8deg",  s: "0.55em" },
+  { c: "🌻", l: "16%", t: "27%", r: "6deg",   s: "0.5em"  },
+  { c: "🍃", l: "30%", t: "11%", r: "-5deg",  s: "0.46em" },
+  { c: "🐝", l: "58%", t: "12%", r: "-4deg",  s: "0.48em" },
+  { c: "🍉", l: "73%", t: "9%",  r: "8deg",   s: "0.55em" },
+  { c: "🌰", l: "90%", t: "15%", r: "6deg",   s: "0.52em" },
+  { c: "★",  l: "44%", t: "8%",  r: "4deg",   s: "0.5em"  },
+  { c: "💧", l: "3%",  t: "45%", r: "-6deg",  s: "0.55em" },
+  { c: "🍎", l: "95%", t: "44%", r: "-8deg",  s: "0.52em" },
+  { c: "🌸", l: "86%", t: "56%", r: "8deg",   s: "0.46em" },
+  { c: "🥥", l: "7%",  t: "80%", r: "12deg",  s: "0.55em" },
+  { c: "🍇", l: "30%", t: "86%", r: "-4deg",  s: "0.48em" },
+  { c: "🫘", l: "66%", t: "88%", r: "5deg",   s: "0.5em"  },
+  { c: "🍃", l: "82%", t: "80%", r: "-10deg", s: "0.5em"  },
+];
+
+const COSMIC_GLYPHS = [
+  { c: "🌻", l: "5%",  t: "10%", r: "-8deg",  s: "0.6em"  },
+  { c: "🌱", l: "84%", t: "6%",  r: "6deg",   s: "0.62em" },
+  { c: "🌸", l: "92%", t: "72%", r: "-12deg", s: "0.58em" },
+  { c: "🍎", l: "3%",  t: "82%", r: "12deg",  s: "0.58em" },
+  { c: "✦",  l: "46%", t: "4%",  r: "-4deg",  s: "0.5em"  },
+  { c: "🐝", l: "7%",  t: "46%", r: "-4deg",  s: "0.52em" },
+  { c: "★",  l: "88%", t: "40%", r: "8deg",   s: "0.5em"  },
+  { c: "🫘", l: "22%", t: "22%", r: "10deg",  s: "0.5em"  },
+  { c: "🍉", l: "70%", t: "22%", r: "-6deg",  s: "0.52em" },
+  { c: "💧", l: "32%", t: "70%", r: "8deg",   s: "0.5em"  },
+  { c: "🍃", l: "62%", t: "78%", r: "-10deg", s: "0.52em" },
+  { c: "✦",  l: "18%", t: "58%", r: "14deg",  s: "0.46em" },
+  { c: "🥥", l: "78%", t: "56%", r: "-8deg",  s: "0.5em"  },
+  { c: "🌰", l: "50%", t: "88%", r: "4deg",   s: "0.5em"  },
+  { c: "★",  l: "40%", t: "38%", r: "-6deg",  s: "0.46em" },
+  { c: "🌷", l: "12%", t: "33%", r: "6deg",   s: "0.48em" },
+];
+
+function CosmosBg({ variant = "cosmic", glyphSize }) {
+  const glyphsStyle = glyphSize ? { fontSize: glyphSize + "px" } : undefined;
+  if (variant === "chalkboard") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse at center, #3a9b7a 0%, #1d6b53 55%, #0b3a2d 100%)",
+          overflow: "hidden",
+        }}
+      >
+        <div className="ed-glyphs" style={{ color: "rgba(255,255,255,0.10)", ...glyphsStyle }}>
+          {CHALK_GLYPHS.map((g, i) => (
+            <span key={i} style={{ left: g.l, top: g.t, "--rot": g.r, ...(g.s ? { fontSize: g.s } : {}) }}>{g.c}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="ed-cosmos" />
+      <div className="ed-glyphs" style={glyphsStyle}>
+        {COSMIC_GLYPHS.map((g, i) => (
+          <span key={i} style={{ left: g.l, top: g.t, "--rot": g.r, ...(g.s ? { fontSize: g.s } : {}) }}>{g.c}</span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Contador de visitas — endpoint PHP del lado servidor con fallback localStorage.
+// NO PERSONALIZAR: idéntico en todos los juegos del repo.
+// En servidores con PHP (Apache de edinun.com) muestra el conteo global real.
+// En GitHub Pages / servidor estático sin PHP, el .php se sirve como texto
+// plano → el fetch falla parseando JSON → caemos al contador localStorage.
+// ─────────────────────────────────────────────────────────────
+const VISITOR_ENDPOINT = "counter.php"; // relativo a index.html del juego
+const VISITOR_KEY = "edinun_visitors_v1";
+const VISITOR_SESSION_FLAG = "edinun_visit_counted_v1";
+
+async function fetchVisitorCount(opts) {
+  const inc = opts && opts.increment;
+  const url = inc ? VISITOR_ENDPOINT + "?inc=1" : VISITOR_ENDPOINT;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("counter http " + res.status);
+  // Tolera dos contratos de servidor: JSON {"count": N} (counter.php de este
+  // repo) o un numero plano "N". Si el .php se sirve como texto ("<?php...")
+  // ambos parseos fallan -> NaN -> throw -> el cliente cae a localStorage.
+  const text = (await res.text()).trim();
+  let count;
+  try {
+    const data = JSON.parse(text);
+    count = data && typeof data.count === "number" ? data.count : Number(data);
+  } catch (e) {
+    count = Number(text);
+  }
+  if (!Number.isFinite(count)) throw new Error("counter invalid payload");
+  return count;
+}
+
+function readLocalVisitorCount() {
+  const raw = localStorage.getItem(VISITOR_KEY);
+  const v = raw ? parseInt(raw, 10) : 0;
+  return isNaN(v) ? 0 : v;
+}
+
+function writeLocalVisitorCount(n) {
+  localStorage.setItem(VISITOR_KEY, String(n));
+}
+
+function useVisitorCount() {
+  const [n, setN] = useState(() => readLocalVisitorCount());
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchVisitorCount()
+      .then((count) => {
+        if (cancelled) return;
+        setN(count);
+        writeLocalVisitorCount(count);
+      })
+      .catch(() => { /* fallback localStorage ya cargado en el initializer */ });
+
+    function onUpdate(ev) {
+      const value = ev && ev.detail && ev.detail.count;
+      if (typeof value === "number") setN(value);
+      else setN(readLocalVisitorCount());
+    }
+    window.addEventListener("edinun:visitors-updated", onUpdate);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("edinun:visitors-updated", onUpdate);
+    };
+  }, []);
+
+  return n;
+}
+
+function markFirstAttempt() {
+  if (sessionStorage.getItem(VISITOR_SESSION_FLAG) === "1") return;
+  sessionStorage.setItem(VISITOR_SESSION_FLAG, "1");
+
+  fetchVisitorCount({ increment: true })
+    .then((count) => {
+      writeLocalVisitorCount(count);
+      window.dispatchEvent(new CustomEvent("edinun:visitors-updated", { detail: { count } }));
+    })
+    .catch(() => {
+      const next = readLocalVisitorCount() + 1;
+      writeLocalVisitorCount(next);
+      window.dispatchEvent(new CustomEvent("edinun:visitors-updated", { detail: { count: next } }));
+    });
+}
+
+function PeopleIcon({ size = 18, color = "#fce9a8" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="8" cy="7" r="3" fill={color} />
+      <circle cx="16" cy="7" r="3" fill={color} opacity="0.85" />
+      <path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6v1H2v-1z" fill={color} />
+      <path d="M14 20c0-2 -.7-3.8-1.8-5.2 1-.5 2.1-.8 3.3-.8 3.3 0 6 2.7 6 6v1H14v-1z" fill={color} opacity="0.85" />
+    </svg>
+  );
+}
+
+function incrementGamesCompleted() {
+  const KEY = "edinun_games_completed_v1";
+  const raw = localStorage.getItem(KEY);
+  const next = (raw ? parseInt(raw, 10) : 0) + 1;
+  localStorage.setItem(KEY, String(next));
+  window.dispatchEvent(new Event("edinun:games-updated"));
+  return next;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 1. PANTALLA DE INICIO
+// ─────────────────────────────────────────────────────────────
+function HomeScreen({ app, setApp, go }) {
+  const visitors = useVisitorCount();
+  const [name, setName] = useState(app.studentName || "");
+  const [level, setLevel] = useState(app.level || "basic");
+
+  function start() {
+    if (!name.trim()) return;
+    setApp((s) => ({
+      ...s,
+      studentName: name.trim(),
+      level,
+      sessionStart: Date.now(),
+    }));
+    go("character");
+  }
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 18,
+          right: 22,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(10,6,35,0.55)",
+          border: "1px solid rgba(242,194,96,0.3)",
+          borderRadius: 999,
+          padding: "6px 12px",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <PeopleIcon size={16} color="#fce9a8" />
+        <div style={{ fontFamily: "var(--ed-font-mono)", fontSize: 11, color: "#f2c260", letterSpacing: "0.06em" }}>
+          {visitors.toLocaleString("es-CO")}
+          <span style={{ color: "rgba(246,241,255,0.55)", marginLeft: 6 }}>visitas</span>
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute", inset: 0,
+          display: "grid",
+          gridTemplateColumns: "1fr 1.15fr",
+          alignItems: "center",
+          padding: "40px 56px",
+          gap: 40,
+        }}
+      >
+        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <EdinunLogo size={300} />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 520 }}>
+          <div>
+            <div className="ed-label" style={{ color: "#4fd8ff", marginBottom: 8 }}>
+              EDINUN · La semilla {/* ← PERSONALIZAR: tema del juego */}
+            </div>
+            <h1 className="ed-h1" style={{ fontSize: 44, lineHeight: 1.05 }}>
+              ¡Bienvenido/a,{" "}
+              <span style={{
+                background: "linear-gradient(180deg,#fce9a8,#d9a441)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontWeight: 600,
+              }}>
+                Estudiante!
+              </span>
+            </h1>
+          </div>
+
+          <div style={{
+            padding: "14px 18px",
+            borderRadius: 14,
+            background: "rgba(10,6,35,0.55)",
+            border: "1px solid rgba(148,120,255,0.3)",
+            fontFamily: "var(--ed-font-display)", fontWeight: 600,
+            fontSize: 15, lineHeight: 1.4,
+            color: "#fce9a8",
+            textAlign: "center",
+          }}>
+            ¿Cómo nace y crece una planta? 🌱 {/* ← PERSONALIZAR: subtítulo corto */}
+          </div>
+
+          <div>
+            <div className="ed-label" style={{ marginBottom: 10 }}>
+              Escribe tu nombre y entra
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  className="ed-input"
+                  placeholder="Escribe tu nombre"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && start()}
+                />
+              </div>
+              <button className="ed-btn ed-btn-primary" onClick={start} disabled={!name.trim()}
+                style={{ height: 52, padding: "0 28px", fontSize: 16, opacity: name.trim() ? 1 : 0.5 }}>
+                ENTRAR →
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. SELECCIÓN DE PERSONAJE
+// ─────────────────────────────────────────────────────────────
+function CharacterScreen({ app, setApp, go }) {
+  const [sel, setSel] = useState(app.character || "quimica");
+  const current = CHARACTERS.find((c) => c.id === sel) || CHARACTERS[0];
+
+  function choose() {
+    // Juego de nivel único.  // ← PERSONALIZAR: categoría/etiqueta del tema
+    setApp((s) => ({
+      ...s,
+      character: sel,
+      currentCategory: "la-semilla",
+      currentCatLabel: "La semilla",
+    }));
+    go("game");
+  }
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 18, left: 24, right: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button className="ed-btn ed-btn-ghost" onClick={() => go("home")} style={{ padding: "8px 14px" }}>
+          ← VOLVER
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, color: "#fce9a8", fontSize: 20, textShadow: "0 2px 6px rgba(0,0,0,0.45)" }}>
+            Hola, {app.studentName || "Estudiante"} 👋
+          </div>
+          <EdinunLogoMini size={64} />
+        </div>
+      </div>
+
+      <div style={{
+        position: "absolute", inset: "92px 32px 24px 32px",
+        display: "grid", gridTemplateColumns: "1fr 1.05fr", gap: 24, alignItems: "center",
+      }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 0 }}>
+          <div style={{ position: "relative" }}>
+            <div style={{
+              position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)",
+              width: 220, height: 28, borderRadius: "50%",
+              background: "radial-gradient(ellipse, rgba(242,194,96,0.45), transparent 70%)",
+              filter: "blur(5px)",
+            }} />
+            <current.Component size={280} floating />
+          </div>
+          <div style={{ textAlign: "center", marginTop: 4 }}>
+            <h2 className="ed-h1" style={{ fontSize: 28, lineHeight: 1 }}>{current.name}</h2>
+            <div className="ed-label" style={{ color: "#fce9a8", marginTop: 2, fontSize: 10 }}>{current.title}</div>
+            <div className="ed-body" style={{ marginTop: 6, maxWidth: 320, fontStyle: "italic", fontSize: 13, lineHeight: 1.35 }}>
+              "{current.quote}"
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="ed-label" style={{ marginBottom: 10 }}>Elige tu guía</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {CHARACTERS.map((c) => {
+              const active = sel === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSel(c.id)}
+                  className="ed-card"
+                  style={{
+                    padding: 12,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transform: active ? "translateY(-2px)" : "none",
+                    boxShadow: active
+                      ? "var(--ed-shadow-card), 0 0 0 2px rgba(79,216,255,0.7), 0 0 30px rgba(79,216,255,0.35)"
+                      : "var(--ed-shadow-card)",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 68, height: 68, flexShrink: 0 }}>
+                      <c.Component size={68} floating={false} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 600, fontSize: 18 }}>
+                        {c.name}
+                      </div>
+                      <div className="ed-label" style={{ fontSize: 10, color: "#4fd8ff" }}>
+                        {c.specialty}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={choose}
+            className="ed-btn ed-btn-primary"
+            style={{ marginTop: 20, width: "100%", height: 52, fontSize: 17 }}
+          >
+            ¡VAMOS, {current.name.toUpperCase()}! →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { HomeScreen, CharacterScreen, CosmosBg, incrementGamesCompleted, useVisitorCount, markFirstAttempt });
+
+// game-screens.jsx — JUEGO-2 · "La semilla" (Ciencias Naturales, 6 años).
+// Mecánica "Mira y toca" sobre el FORMATO EDINUN (ref: edinun-language):
+// HUD (logo + RONDA con dots + tiempo + estrellas), personaje guía con bocadillo
+// de pista, PLANTA QUE CRECE en el centro, opciones tipo ficha candy, overlay de
+// feedback "¡EXCELENTE!/¡UPS!" y ResultsScreen tipo reporte académico.
+//
+// Giro temático: la pieza central es una planta que CRECE con cada ronda
+// (semilla → brote → tallito → plantita), usando
+// assets/{semilla,brote,tallito,plantita}.png. Si las imágenes faltan, cae a un
+// emoji por etapa (queda jugable igual).
+//
+// El niño TOCA la opción correcta directamente (no hay VERIFICAR/BORRAR).
+// Cada partida son 4 RONDAS elegidas al azar de un banco de 12, evitando las
+// vistas recientemente (localStorage) → recargar o cambiar de niño NO repite.
+//
+// CONTRATO: GameScreen/ResultsScreen({app,setApp,go}) expuestos en window;
+// markFirstAttempt() en la 1ª respuesta; incrementGamesCompleted() al fin.
+// Invariantes EDINUN: fallar NO baja progreso; al fallar se revela la correcta
+// (verde) dejando ver lo que tocó el niño (rojo); salir/reiniciar con modal.
+
+const { useState: useStateG, useEffect: useEffectG, useRef: useRefG } = React;
+
+function PortalToBody({ children }) {
+  return ReactDOM.createPortal(children, document.body);
+}
+
+const CAT_LABEL = "La semilla";
+const ROUNDS = 4;
+
+// ─────────────────────────────────────────────────────────────
+// Banco de preguntas — La semilla (TEMA 2). 12 ítems, lenguaje de 6 años.
+// Cubre: qué necesita para crecer (agua/sol/tierra), dónde se guardan las
+// semillas (el fruto), frutos con semillas, dispersión (viento/agua/animal) y
+// partes de la planta (raíz/hoja/flor).
+// { ctx: emoji de contexto (para el reporte), enunciado, pista (bocadillo, sin
+//   emoji), opciones:[{e,t}], correcta: idx }. Posición de la correcta variada.
+// ─────────────────────────────────────────────────────────────
+const PREGUNTAS = [
+  { ctx: "💧", enunciado: "¿Qué necesita la semilla para crecer?", pista: "La bebemos y cae cuando llueve",
+    opciones: [{ e: "💧", t: "Agua" }, { e: "🧸", t: "Juguete" }, { e: "📺", t: "Tele" }], correcta: 0 },
+  { ctx: "☀️", enunciado: "¿Qué más ayuda a la planta a crecer?", pista: "Sale de día y da calorcito",
+    opciones: [{ e: "🍬", t: "Dulce" }, { e: "☀️", t: "Sol" }, { e: "⚽", t: "Pelota" }], correcta: 1 },
+  { ctx: "🪴", enunciado: "¿Dónde sembramos la semilla?", pista: "Es de color café y está en el jardín",
+    opciones: [{ e: "🌊", t: "En el agua" }, { e: "🪨", t: "En una piedra" }, { e: "🟤", t: "En la tierra" }], correcta: 2 },
+  { ctx: "🍎", enunciado: "¿Dónde se guardan las semillas?", pista: "Es la parte rica que nos comemos",
+    opciones: [{ e: "🍎", t: "El fruto" }, { e: "🍃", t: "La hoja" }, { e: "🌸", t: "La flor" }], correcta: 0 },
+  { ctx: "🌻", enunciado: "¿Qué planta mira al sol y tiene muchas semillas?", pista: "Es grande y amarilla",
+    opciones: [{ e: "🌵", t: "Cactus" }, { e: "🌻", t: "Girasol" }, { e: "🌹", t: "Rosa" }], correcta: 1 },
+  { ctx: "🍉", enunciado: "¿Qué fruta tiene muchas semillas negras?", pista: "Verde por fuera y roja por dentro",
+    opciones: [{ e: "🍌", t: "Banana" }, { e: "🍇", t: "Uvas" }, { e: "🍉", t: "Sandía" }], correcta: 2 },
+  { ctx: "💨", enunciado: "Una semilla muy ligerita viaja con…", pista: "Sopla y mueve las hojas de los árboles",
+    opciones: [{ e: "💨", t: "El viento" }, { e: "🧱", t: "Una pared" }, { e: "🛏️", t: "Una cama" }], correcta: 0 },
+  { ctx: "🥥", enunciado: "El coco viaja muy lejos flotando en el…", pista: "Hay muchísima en el mar",
+    opciones: [{ e: "🔥", t: "Fuego" }, { e: "🌊", t: "El agua" }, { e: "🪨", t: "Una roca" }], correcta: 1 },
+  { ctx: "🐿️", enunciado: "Algunas semillas viajan pegadas a…", pista: "Tiene pelito y corre por el bosque",
+    opciones: [{ e: "🚗", t: "Un carro" }, { e: "📱", t: "Un teléfono" }, { e: "🐿️", t: "Un animal" }], correcta: 2 },
+  { ctx: "🌱", enunciado: "¿Qué le sale primero a la semilla?", pista: "Crece hacia abajo y bebe el agua",
+    opciones: [{ e: "🌱", t: "La raíz" }, { e: "🌸", t: "La flor" }, { e: "🍎", t: "El fruto" }], correcta: 0 },
+  { ctx: "🍃", enunciado: "¿Qué parte verde atrapa la luz del sol?", pista: "Es plana y crece en el tallo",
+    opciones: [{ e: "🌸", t: "La flor" }, { e: "🍃", t: "La hoja" }, { e: "🍎", t: "El fruto" }], correcta: 1 },
+  { ctx: "🌸", enunciado: "¿Qué parte es bonita y huele rico?", pista: "Atrae a las abejas con sus colores",
+    opciones: [{ e: "🍃", t: "La hoja" }, { e: "🍎", t: "El fruto" }, { e: "🌸", t: "La flor" }], correcta: 2 },
+];
+
+// Memoria de preguntas recientes (localStorage) para no repetir entre cargas/
+// niños en el mismo navegador. Recuerda los últimos 8 índices vistos.
+const RECENT_KEY = "edinun_ccn_semilla_recientes_v1";
+
+function getRecent() {
+  try {
+    const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    return Array.isArray(r) ? r : [];
+  } catch (e) { return []; }
+}
+
+function pushRecent(ids) {
+  const prev = getRecent().filter((id) => ids.indexOf(id) === -1);
+  const next = ids.concat(prev).slice(0, 8);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) {}
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+// Elige n índices del banco: primero los NO vistos recientemente (barajados),
+// completando con los vistos si hiciera falta. Garantiza variación al recargar.
+function pickRounds(n) {
+  const recent = new Set(getRecent());
+  const all = PREGUNTAS.map((_, i) => i);
+  const fresh = shuffle(all.filter((i) => !recent.has(i)));
+  const stale = shuffle(all.filter((i) => recent.has(i)));
+  return fresh.concat(stale).slice(0, n);
+}
+
+const ANIMOS = [
+  "¡Casi! Sigue intentándolo.",
+  "¡La próxima es tuya!",
+  "Equivocarse también es aprender.",
+  "¡Vamos a la siguiente!",
+];
+
+// Colores de borde para las fichas de opción.
+const OPTION_COLORS = ["#ef5a5a", "#4fa0ff", "#2ecc8f"];
+
+// ─────────────────────────────────────────────────────────────
+// Planta que crece — pieza central. La etapa (1..4) sube con cada ronda.
+// Usa assets/{semilla,brote,tallito,plantita}.png (ver STAGE_FILES); si falta la
+// imagen, cae a un emoji por etapa.
+// ─────────────────────────────────────────────────────────────
+const STAGE_NAMES = ["Semilla", "Brote", "Tallito", "¡Plantita!"];
+const STAGE_FALLBACK = ["🫘", "🌱", "🌿", "🪴"];
+const STAGE_FILES = ["semilla", "brote", "tallito", "plantita"];
+
+function GrowingPlant({ stage }) {
+  const s = Math.max(1, Math.min(stage || 1, 4));
+  const [imgError, setImgError] = useStateG(false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <div style={{
+        position: "relative",
+        width: 152, height: 140, borderRadius: 22,
+        background: "linear-gradient(180deg, #cfeafe 0%, #eaf7df 58%, #d6edc2 100%)",
+        border: "3px solid #f2c260",
+        boxShadow: "0 12px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(242,194,96,0.35), inset 0 -4px 0 rgba(0,0,0,0.08)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "hidden",
+      }}>
+        {imgError ? (
+          <span style={{ fontSize: 82, lineHeight: 1, paddingBottom: 14 }}>{STAGE_FALLBACK[s - 1]}</span>
+        ) : (
+          <img
+            src={`assets/${STAGE_FILES[s - 1]}.png`}
+            alt=""
+            onError={() => setImgError(true)}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        )}
+      </div>
+      <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 13, color: "#fce9a8", letterSpacing: "0.05em", textShadow: "0 2px 5px rgba(0,0,0,0.55)" }}>
+        {STAGE_NAMES[s - 1]}
+      </div>
+    </div>
+  );
+}
+
+function GameScreen({ app, setApp, go }) {
+  const char = CHARACTERS.find((c) => c.id === app.character) || CHARACTERS[0];
+
+  const [rounds, setRounds] = useStateG(() => pickRounds(ROUNDS));
+  const [idx, setIdx] = useStateG(0);
+  const [picked, setPicked] = useStateG(null);
+  const [feedback, setFeedback] = useStateG(null);
+  const [feedbackMsg, setFeedbackMsg] = useStateG("");
+  const [aciertos, setAciertos] = useStateG(0);
+  const [stars, setStars] = useStateG(0);
+  const [elapsed, setElapsed] = useStateG(0);
+  const [log, setLog] = useStateG([]);
+  const [confirmingExit, setConfirmingExit] = useStateG(false);
+  const [confirmingRestart, setConfirmingRestart] = useStateG(false);
+
+  const started = useRefG(Date.now());
+  const exerciseStart = useRefG(Date.now());
+  const advancing = useRefG(false);
+
+  // Registrar las preguntas de esta partida como recientes (una sola vez).
+  useEffectG(() => { pushRecent(rounds); }, []);
+
+  useEffectG(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - started.current) / 1000));
+    }, 500);
+    return () => clearInterval(id);
+  }, []);
+
+  const q = PREGUNTAS[rounds[idx]];
+  const answered = picked !== null;
+  const correcta = q.opciones[q.correcta];
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60), ss = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  }
+
+  function confirmRestart() {
+    setConfirmingRestart(false);
+    advancing.current = false;
+    const nuevas = pickRounds(ROUNDS);
+    pushRecent(nuevas);
+    setRounds(nuevas);
+    setIdx(0); setPicked(null); setFeedback(null); setFeedbackMsg("");
+    setAciertos(0); setStars(0); setLog([]);
+    started.current = Date.now();
+    exerciseStart.current = Date.now();
+  }
+
+  function answerTap(i) {
+    if (answered || advancing.current) return;
+    if (typeof markFirstAttempt === "function") markFirstAttempt();
+    setPicked(i);
+    const isCorrect = i === q.correcta;
+    const exSec = Math.max(0, Math.floor((Date.now() - exerciseStart.current) / 1000));
+    const entry = {
+      idx: idx + 1,
+      emoji: q.ctx,
+      a: q.enunciado,
+      userAnswer: `${q.opciones[i].e} ${q.opciones[i].t}`,
+      correctAnswer: `${correcta.e} ${correcta.t}`,
+      isCorrect,
+      time: exSec,
+    };
+
+    // Calcular valores nuevos aquí (el setTimeout captura este closure).
+    const newLog = [...log, entry];
+    const newAciertos = aciertos + (isCorrect ? 1 : 0);
+    const newStars = stars + (isCorrect ? 1 : 0);
+    const isLast = idx + 1 >= ROUNDS;
+
+    setLog(newLog);
+    setAciertos(newAciertos);
+    setStars(newStars);
+    advancing.current = true;
+
+    if (isCorrect) {
+      setApp((s) => ({ ...s, stars: (s.stars || 0) + 1 }));
+      setFeedback("ok");
+      setFeedbackMsg("+1 ⭐");
+      setTimeout(() => advance(newLog, newAciertos, newStars, isLast), 1050);
+    } else {
+      setTimeout(() => {
+        setFeedback("err");
+        setFeedbackMsg(ANIMOS[idx % ANIMOS.length]);
+      }, 720);
+      setTimeout(() => advance(newLog, newAciertos, newStars, isLast), 2000);
+    }
+  }
+
+  function advance(newLog, newAciertos, newStars, isLast) {
+    setFeedback(null);
+    setFeedbackMsg("");
+    if (!isLast) {
+      setIdx((i) => i + 1);
+      setPicked(null);
+      exerciseStart.current = Date.now();
+      advancing.current = false;
+    } else {
+      setApp((s) => ({
+        ...s,
+        stars: newStars,
+        lastResult: {
+          category: CAT_LABEL,
+          solved: newAciertos,
+          total: ROUNDS,
+          time: Math.floor((Date.now() - started.current) / 1000),
+          starsEarned: newStars,
+          log: newLog,
+        },
+      }));
+      if (typeof incrementGamesCompleted === "function") incrementGamesCompleted();
+      go("results");
+    }
+  }
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      {/* ── HUD: logo izq, tiempo + estrellas der ── */}
+      <div style={{ position: "absolute", top: 10, left: 16, right: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <EdinunLogoMini size={60} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "6px 12px", border: "1px solid rgba(242,194,96,0.4)", fontFamily: "var(--ed-font-mono)", fontSize: 13, color: "#fce9a8" }}>
+            ⏱ {formatTime(elapsed)}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "6px 12px", border: "1px solid rgba(242,194,96,0.4)", fontFamily: "var(--ed-font-display)", fontWeight: 600, color: "#fce9a8" }}>
+            ⭐ {stars}
+          </div>
+        </div>
+      </div>
+
+      {/* ── RONDA con dots (sin chip de tema: juego de 1 solo nivel) ── */}
+      <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="ed-label" style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Ronda</span>
+        {Array.from({ length: ROUNDS }).map((_, i) => {
+          const done = i < log.length;
+          const ok = done && log[i] && log[i].isCorrect;
+          return (
+            <div key={i} style={{
+              width: 11, height: 11, borderRadius: "50%",
+              background: done ? (ok ? "#fce9a8" : "#ff6b6b") : (i === idx ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"),
+              boxShadow: done ? "0 0 8px currentColor" : "none",
+              color: ok ? "#fce9a8" : "#ff6b6b",
+            }} />
+          );
+        })}
+      </div>
+
+      {/* ── Personaje guía + bocadillo de pista (izquierda) ── */}
+      <div style={{ position: "absolute", left: 8, bottom: 78, width: 220, pointerEvents: "none", textAlign: "center" }}>
+        <div className="ed-float-soft" style={{ position: "absolute", left: 0, right: 0, bottom: "100%", display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{
+            position: "relative", display: "inline-block", maxWidth: 210,
+            background: "linear-gradient(180deg, rgba(20,12,55,0.95), rgba(10,6,35,0.95))",
+            border: "1.5px solid rgba(242,194,96,0.65)", borderRadius: 16, padding: "10px 14px",
+            fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 14, lineHeight: 1.3,
+            color: "#fce9a8", textAlign: "center",
+            boxShadow: "0 10px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)",
+          }}>
+            {answered ? (picked === q.correcta ? "¡Muy bien!" : "¡Casi! Mira la respuesta.") : (q.pista || "Toca al correcto")}
+            <div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "10px solid rgba(20,12,55,0.95)", filter: "drop-shadow(0 1px 0 rgba(242,194,96,0.55))" }} />
+          </div>
+        </div>
+        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+          <div style={{ position: "absolute", bottom: 14, left: "50%", transform: "translateX(-50%)", width: 140, height: 16, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(242,194,96,0.45), transparent 70%)", filter: "blur(5px)" }} />
+          <char.Component size={186} floating />
+        </div>
+        <div style={{ marginTop: -2, fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 14, color: "#fce9a8", letterSpacing: "0.04em", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>{char.name}</div>
+      </div>
+
+      {/* ── Zona central: enunciado + planta que crece + opciones, repartidos parejo ── */}
+      <div style={{ position: "absolute", top: 60, bottom: 18, left: 240, right: 192, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
+        {/* Enunciado */}
+        <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 23, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 470 }}>
+          {q.enunciado}
+        </div>
+
+        {/* Planta que crece (etapa = ronda actual) */}
+        <GrowingPlant stage={idx + 1} />
+
+        {/* Opciones — fichas grandes tocables */}
+        <div style={{ display: "flex", gap: 18, justifyContent: "center", flexWrap: "nowrap" }}>
+          {q.opciones.map((op, i) => {
+            const correctOne = i === q.correcta;
+            const baseColor = OPTION_COLORS[i % OPTION_COLORS.length];
+            let borderColor = baseColor;
+            let bg = "linear-gradient(180deg, #fff8e6 0%, #f7e3a8 100%)";
+            let nameColor = "#3a2608";
+            if (answered) {
+              if (correctOne) {
+                borderColor = "#2ecc8f";
+                bg = "linear-gradient(180deg, rgba(72,224,154,0.95), rgba(26,143,95,0.92))";
+                nameColor = "#06381f";
+              } else if (i === picked) {
+                borderColor = "#ff6b6b";
+                bg = "linear-gradient(180deg, rgba(255,139,139,0.92), rgba(178,47,47,0.9))";
+                nameColor = "#fff";
+              } else {
+                bg = "linear-gradient(180deg, rgba(255,248,230,0.5), rgba(247,227,168,0.5))";
+              }
+            }
+            return (
+              <button
+                key={i}
+                onClick={() => answerTap(i)}
+                disabled={answered}
+                style={{
+                  width: 128, height: 128, borderRadius: 18,
+                  border: `3px solid ${borderColor}`,
+                  background: bg,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                  cursor: answered ? "default" : "pointer",
+                  boxShadow: answered && correctOne
+                    ? "0 0 22px rgba(46,204,143,0.6), inset 0 1px 0 rgba(255,255,255,0.4)"
+                    : "inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -3px 0 rgba(0,0,0,0.12), 0 6px 14px rgba(0,0,0,0.3)",
+                  transform: answered && correctOne ? "translateY(-4px)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+                title="Toca para responder"
+              >
+                <span style={{ fontSize: 60, lineHeight: 1, filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.3))" }}>{op.e}</span>
+                <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 15, color: nameColor }}>{op.t}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Acciones (derecha): REINICIAR · SALIR ── */}
+      <div style={{ position: "absolute", right: 18, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: 12, width: 150 }}>
+        <button className="ed-btn ed-btn-restart" onClick={() => setConfirmingRestart(true)} title="Empezar de nuevo" style={{ fontSize: 15, padding: "0 10px", height: 56, fontWeight: 800, letterSpacing: "0.04em" }}>
+          REINICIAR
+        </button>
+        <button className="ed-btn ed-btn-ghost" onClick={() => setConfirmingExit(true)} title="Salir al inicio" style={{ fontSize: 15, padding: "0 10px", height: 56, fontWeight: 800, letterSpacing: "0.04em" }}>
+          SALIR
+        </button>
+      </div>
+
+      {/* ── Overlay de feedback ── */}
+      {feedback && (
+        <PortalToBody>
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 1000, pointerEvents: "none",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(3px)", animation: "ed-pop-in 0.3s",
+          }}>
+            <div style={{
+              fontFamily: "'Fredoka','Baloo 2',system-ui,sans-serif", fontWeight: 700,
+              fontSize: "clamp(56px, 11vmin, 120px)",
+              color: feedback === "ok" ? "#2ecc8f" : "#ff6b6b",
+              textShadow: "0 4px 0 rgba(0,0,0,0.45), 0 0 60px currentColor",
+            }}>
+              {feedback === "ok" ? "¡EXCELENTE!" : "¡UPS!"}
+            </div>
+            {feedbackMsg && (
+              <div style={{
+                fontFamily: "'Fredoka','Baloo 2',system-ui,sans-serif", fontWeight: 700,
+                fontSize: "clamp(18px, 2.6vmin, 30px)",
+                color: feedback === "ok" ? "#fce9a8" : "#fff",
+                background: "rgba(0,0,0,0.55)", padding: "8px 26px", borderRadius: 999,
+                textShadow: "0 2px 6px rgba(0,0,0,0.6)", textAlign: "center",
+              }}>
+                {feedback === "err" ? `${feedbackMsg} — ${char.name}` : feedbackMsg}
+              </div>
+            )}
+          </div>
+        </PortalToBody>
+      )}
+
+      {/* ── Modal SALIR ── */}
+      {confirmingExit && (
+        <PortalToBody>
+          <div onClick={() => setConfirmingExit(false)} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.62)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", animation: "ed-pop-in 0.18s", padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} className="ed-card" style={{ padding: 24, maxWidth: 440, textAlign: "center", boxShadow: "var(--ed-shadow-card), 0 0 40px rgba(255,107,107,0.3)" }}>
+              <div className="ed-label" style={{ color: "#ff8b8b", marginBottom: 6 }}>Salir del juego</div>
+              <h2 className="ed-h1" style={{ fontSize: 22, lineHeight: 1.15, marginBottom: 8 }}>¿Volver al inicio?</h2>
+              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Vas a perder lo de esta ronda.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button className="ed-btn ed-btn-ghost" onClick={() => setConfirmingExit(false)} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SEGUIR JUGANDO</button>
+                <button className="ed-btn ed-btn-primary" onClick={() => { setConfirmingExit(false); go("home"); }} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SÍ, SALIR</button>
+              </div>
+            </div>
+          </div>
+        </PortalToBody>
+      )}
+
+      {/* ── Modal REINICIAR ── */}
+      {confirmingRestart && (
+        <PortalToBody>
+          <div onClick={() => setConfirmingRestart(false)} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.62)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", animation: "ed-pop-in 0.18s", padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} className="ed-card" style={{ padding: 24, maxWidth: 440, textAlign: "center", boxShadow: "var(--ed-shadow-card), 0 0 40px rgba(155,123,232,0.3)" }}>
+              <div className="ed-label" style={{ color: "#c4a8ff", marginBottom: 6 }}>Reiniciar juego</div>
+              <h2 className="ed-h1" style={{ fontSize: 22, lineHeight: 1.15, marginBottom: 8 }}>¿Empezar de nuevo?</h2>
+              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Vas a jugar con preguntas nuevas.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button className="ed-btn ed-btn-ghost" onClick={() => setConfirmingRestart(false)} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SEGUIR JUGANDO</button>
+                <button className="ed-btn ed-btn-primary" onClick={confirmRestart} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SÍ, REINICIAR</button>
+              </div>
+            </div>
+          </div>
+        </PortalToBody>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// RESULTS — reporte académico (mismo formato que la ref de Lenguaje).
+// ─────────────────────────────────────────────────────────────
+const printStyles = {
+  doc: { padding: 0, margin: 0, color: "#111", background: "#fff" },
+  head: { display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid #d9a441", paddingBottom: 10, marginBottom: 14 },
+  logo: { width: 56, height: 56, objectFit: "contain" },
+  org: { fontFamily: "'Fredoka','Baloo 2','Nunito',sans-serif", fontWeight: 700, fontSize: "16pt", letterSpacing: "0.03em", lineHeight: 1.1, margin: 0 },
+  sub: { fontSize: "9pt", color: "#555", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 },
+  date: { fontFamily: "ui-monospace,Consolas,monospace", fontSize: "10pt", color: "#555", textAlign: "right", whiteSpace: "nowrap" },
+  fields: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 },
+  field: { padding: "8px 10px", borderRadius: 6, border: "1px solid #ddd" },
+  fieldL: { fontSize: "8pt", textTransform: "uppercase", letterSpacing: "0.08em", color: "#666" },
+  fieldV: { fontSize: "12pt", fontWeight: 700, marginTop: 2 },
+  table: { width: "100%", borderCollapse: "collapse", fontSize: "11pt" },
+  thHead: { borderBottom: "2px solid #111" },
+  th: { padding: 8, textAlign: "left", fontSize: "9pt", textTransform: "uppercase", letterSpacing: "0.08em", color: "#555", fontWeight: 700 },
+  thC: { textAlign: "center" },
+  thR: { textAlign: "right" },
+  tr: { borderBottom: "1px solid #ccc" },
+  td: { padding: "9px 8px", fontFamily: "'Nunito',sans-serif" },
+  tdNum: { color: "#888", width: 36, fontFamily: "ui-monospace,Consolas,monospace" },
+  tdOk: { color: "#1e8a5d", textAlign: "center", fontWeight: 700 },
+  tdErr: { color: "#c33b3b", textAlign: "center", fontWeight: 700 },
+  summary: { marginTop: 16, borderTop: "2px solid #d9a441", paddingTop: 12, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 },
+  cell: { padding: 10, borderRadius: 6, border: "1px solid #ddd", textAlign: "center" },
+  cellEmp: { background: "#faf3df", borderColor: "#d9a441" },
+  cellL: { fontSize: "8pt", textTransform: "uppercase", letterSpacing: "0.08em", color: "#666" },
+  cellV: { fontSize: "18pt", fontWeight: 800, marginTop: 4 },
+  foot: { marginTop: 16, fontSize: "9pt", color: "#888", textAlign: "center" },
+};
+
+function PrintableReport({ studentName, res, dateStr, mm, ss, attemptedCount, accuracy }) {
+  const log = res.log || [];
+  return (
+    <PortalToBody>
+      <div className="ed-print-doc" style={printStyles.doc} aria-hidden="true">
+        <div style={printStyles.head}>
+          <img src="assets/edinun-logo.png" alt="" style={printStyles.logo} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={printStyles.org}>EDINUN — Ediciones Nacionales Unidas</h1>
+            <div style={printStyles.sub}>Reporte académico · Ciencias Naturales</div>
+          </div>
+          <div style={printStyles.date}>{dateStr}</div>
+        </div>
+        <div style={printStyles.fields}>
+          <div style={printStyles.field}><div style={printStyles.fieldL}>Estudiante</div><div style={printStyles.fieldV}>{studentName || "—"}</div></div>
+          <div style={printStyles.field}><div style={printStyles.fieldL}>Tema</div><div style={printStyles.fieldV}>{res.category || "—"}</div></div>
+          <div style={printStyles.field}><div style={printStyles.fieldL}>Tiempo total</div><div style={printStyles.fieldV}>{String(mm).padStart(2,"0")}:{String(ss).padStart(2,"0")}</div></div>
+        </div>
+        <table style={printStyles.table}>
+          <thead>
+            <tr style={printStyles.thHead}>
+              <th style={printStyles.th}>#</th>
+              <th style={printStyles.th}>Pregunta</th>
+              <th style={{ ...printStyles.th, ...printStyles.thR }}>Respuesta del estudiante</th>
+              <th style={{ ...printStyles.th, ...printStyles.thR }}>Respuesta correcta</th>
+              <th style={{ ...printStyles.th, ...printStyles.thC }}>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {log.map((e) => (
+              <tr key={e.idx} style={printStyles.tr}>
+                <td style={{ ...printStyles.td, ...printStyles.tdNum }}>{e.idx}</td>
+                <td style={{ ...printStyles.td, fontWeight: 700 }}>{e.emoji} {e.a}</td>
+                <td style={{ ...printStyles.td, textAlign: "right" }}>{e.userAnswer}</td>
+                <td style={{ ...printStyles.td, textAlign: "right" }}>{e.correctAnswer}</td>
+                <td style={{ ...printStyles.td, ...(e.isCorrect ? printStyles.tdOk : printStyles.tdErr) }}>{e.isCorrect ? "Correcto" : "Incorrecto"}</td>
+              </tr>
+            ))}
+            {log.length === 0 && (<tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#888", fontStyle: "italic" }}>Sin ejercicios.</td></tr>)}
+          </tbody>
+        </table>
+        <div style={printStyles.summary}>
+          <div style={printStyles.cell}><div style={printStyles.cellL}>Preguntas</div><div style={printStyles.cellV}>{attemptedCount} / {res.total}</div></div>
+          <div style={printStyles.cell}><div style={printStyles.cellL}>Correctas</div><div style={printStyles.cellV}>{res.solved}</div></div>
+          <div style={printStyles.cell}><div style={printStyles.cellL}>Estrellas</div><div style={printStyles.cellV}>{res.starsEarned}</div></div>
+          <div style={{ ...printStyles.cell, ...printStyles.cellEmp }}><div style={printStyles.cellL}>Precisión</div><div style={printStyles.cellV}>{accuracy}%</div></div>
+        </div>
+        <div style={printStyles.foot}>EDINUN GAMES · Reporte generado automáticamente</div>
+      </div>
+    </PortalToBody>
+  );
+}
+
+function ReportField({ label, value }) {
+  return (
+    <div style={{ padding: "8px 10px", borderRadius: 10, background: "rgba(10,6,35,0.45)", border: "1px solid rgba(148,120,255,0.25)" }}>
+      <div className="ed-label" style={{ fontSize: 9, color: "var(--ed-ink-soft)", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 600, fontSize: 14, color: "var(--ed-ink)" }}>{value}</div>
+    </div>
+  );
+}
+
+function SummaryCell({ label, value, tone = "var(--ed-ink)", emphasis = false }) {
+  return (
+    <div style={{ padding: "8px 10px", borderRadius: 10, background: emphasis ? "rgba(242,194,96,0.12)" : "rgba(10,6,35,0.4)", border: `1px solid ${emphasis ? "rgba(242,194,96,0.5)" : "rgba(148,120,255,0.25)"}`, textAlign: "center" }}>
+      <div className="ed-label" style={{ fontSize: 9, color: "var(--ed-ink-soft)", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: emphasis ? 22 : 18, color: tone, lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
+function ResultsScreen({ app, setApp, go }) {
+  const char = CHARACTERS.find((c) => c.id === app.character) || CHARACTERS[0];
+  const res = app.lastResult || { category: CAT_LABEL, solved: 0, total: ROUNDS, time: 0, starsEarned: 0, log: [] };
+  const mm = Math.floor(res.time / 60), ss = res.time % 60;
+  const totalEx = res.total || ROUNDS;
+  const attemptedCount = (res.log || []).length;
+  const accuracy = attemptedCount > 0 ? Math.round((res.solved / attemptedCount) * 100) : 0;
+  const dateStr = new Date().toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" });
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 14, left: 24, right: 24, display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
+        <button className="ed-btn ed-btn-ghost" onClick={() => go("home")} style={{ padding: "8px 14px", fontWeight: 800, letterSpacing: "0.04em" }}>← VOLVER AL INICIO</button>
+      </div>
+
+      <div style={{ position: "absolute", inset: "70px 32px 20px 32px", display: "grid", gridTemplateColumns: "0.85fr 1.4fr", gap: 24, alignItems: "stretch" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 34, background: "linear-gradient(180deg, #fce9a8, #d9a441)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1, marginBottom: 4 }}>
+            ¡Tu planta creció!
+          </div>
+          <char.Component size={176} />
+          <div className="ed-body" style={{ fontStyle: "italic", textAlign: "center", maxWidth: 240, fontSize: 13 }}>
+            "{app.studentName || "Campeón"}, acertaste {res.solved} de {totalEx}."
+            <div style={{ marginTop: 4, color: "var(--ed-ink-soft)", fontSize: 12 }}>— {char.name}</div>
+          </div>
+        </div>
+
+        <div className="ed-card" style={{ padding: 16, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid rgba(242,194,96,0.45)", paddingBottom: 10, marginBottom: 12 }}>
+            <EdinunLogoMini size={52} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 17, letterSpacing: "0.04em", lineHeight: 1.1 }}>EDINUN — Ediciones Nacionales Unidas</div>
+              <div style={{ fontFamily: "var(--ed-font-ui)", fontSize: 11, color: "var(--ed-ink-soft)", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>Reporte académico · Ciencias Naturales</div>
+            </div>
+            <div style={{ fontFamily: "var(--ed-font-mono)", fontSize: 11, color: "var(--ed-ink-dim)", textAlign: "right" }}>{dateStr}</div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontFamily: "var(--ed-font-ui)", fontSize: 12, marginBottom: 10 }}>
+            <ReportField label="Estudiante" value={app.studentName || "—"} />
+            <ReportField label="Tema" value={res.category} />
+            <ReportField label="Tiempo" value={`${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}`} />
+          </div>
+
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto", marginBottom: 10 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--ed-font-ui)", fontSize: 12 }}>
+              <thead>
+                <tr style={{ fontWeight: 700, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ed-ink-dim)", borderBottom: "1px solid rgba(148,120,255,0.3)" }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px", width: 30 }}>#</th>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>Pregunta</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Tocó</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Correcta</th>
+                  <th style={{ textAlign: "center", padding: "6px 8px" }}>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(res.log || []).map((e) => (
+                  <tr key={e.idx} style={{ borderBottom: "1px solid rgba(148,120,255,0.18)" }}>
+                    <td style={{ padding: "7px 8px", color: "var(--ed-ink-soft)" }}>{e.idx}</td>
+                    <td style={{ padding: "7px 8px", fontWeight: 600 }}>{e.emoji} {e.a}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.userAnswer}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.correctAnswer}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, color: e.isCorrect ? "#2ecc8f" : "#ff6b6b" }}>{e.isCorrect ? "✓" : "✗"}</td>
+                  </tr>
+                ))}
+                {(res.log || []).length === 0 && (<tr><td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "var(--ed-ink-soft)", fontStyle: "italic" }}>Sin preguntas.</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ borderTop: "2px solid rgba(242,194,96,0.45)", paddingTop: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, fontFamily: "var(--ed-font-ui)", fontSize: 11 }}>
+            <SummaryCell label="Preguntas" value={`${attemptedCount} / ${totalEx}`} />
+            <SummaryCell label="Correctas" value={`${res.solved}`} tone="#2ecc8f" />
+            <SummaryCell label="Estrellas" value={`${res.starsEarned}`} tone="#fce9a8" />
+            <SummaryCell label="Precisión" value={`${accuracy}%`} tone="#fce9a8" emphasis />
+          </div>
+
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button className="ed-btn ed-btn-ghost" onClick={() => window.print()} style={{ padding: "0 10px", fontSize: 13, height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>IMPRIMIR REPORTE</button>
+            <button className="ed-btn ed-btn-primary" onClick={() => go("game")} style={{ padding: "0 10px", fontSize: 13, height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>JUGAR OTRA RONDA</button>
+          </div>
+        </div>
+      </div>
+
+      <PrintableReport studentName={app.studentName} res={res} dateStr={dateStr} mm={mm} ss={ss} attemptedCount={attemptedCount} accuracy={accuracy} />
+    </div>
+  );
+}
+
+Object.assign(window, { GameScreen, ResultsScreen });
+
+// app.jsx — Shell de producción EDINUN GAMES.
+// Enrutador por estado y device stage adaptativo (desktop / tablet / mobile).
+// Móvil portrait: el contenido NUNCA rota; un overlay BLOQUEANTE obliga
+// al usuario a girar físicamente el teléfono antes de poder usar la app.
+
+const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
+
+// ─────────────────────────────────────────────────────────────
+// useViewportSize — devuelve el tamaño REAL visible del viewport.
+//
+// En iOS Safari (y otros mobile browsers), `window.innerHeight` y `100vh`
+// reportan la altura de la ventana INCLUYENDO la URL bar, así que el
+// contenido escalado a esa altura termina parcialmente fuera de pantalla
+// (ej: el numpad del juego queda debajo del fondo visible). La Visual
+// Viewport API reporta el área verdaderamente visible y se actualiza
+// cuando la URL bar se muestra/oculta.
+// ─────────────────────────────────────────────────────────────
+// Detección de "resize REAL" vs "zoom del navegador".
+//
+// Idea: el tamaño FÍSICO de la zona visible en píxeles del display es
+// invariante al ctrl+rueda. Cuando subes el zoom de 100 % a 500 %:
+//   · innerWidth en CSS-px se divide entre 5
+//   · devicePixelRatio se multiplica por 5
+//   · innerWidth × devicePixelRatio queda igual ⇒ NO hubo resize real.
+//
+// Cuando arrastras la esquina de la ventana o rotas el dispositivo:
+//   · innerWidth en CSS-px cambia
+//   · devicePixelRatio NO cambia
+//   · innerWidth × devicePixelRatio cambia ⇒ SÍ hubo resize real.
+//
+// Por eso comparamos contra `innerWidth × devicePixelRatio` y solo
+// actualizamos el state cuando ese producto cambia. Así el lienzo se
+// queda con su tamaño CSS previo durante el zoom y el navegador lo
+// amplifica visualmente — junto con los glifos, que ya leen `glyphSize`
+// del mismo state defendido (ver DeviceStage).
+//
+// La defensa anterior (tracker de _lastDPR) era frágil: se actualizaba
+// en CADA evento, así que si el navegador disparaba dos resize seguidos
+// para la misma acción de zoom, el segundo veía el dpr ya guardado y
+// recalculaba el tamaño con el viewport pequeño. Esto causaba que los
+// glifos quedaran enormes mientras el lienzo se recomprimía.
+function physicalSize() {
+  if (typeof window === "undefined") return { w: 0, h: 0 };
+  const dpr = window.devicePixelRatio || 1;
+  return { w: window.innerWidth * dpr, h: window.innerHeight * dpr };
+}
+let _lastPhysical = physicalSize();
+
+function useViewportSize() {
+  const [size, setSize] = useStateA(() => readSize());
+  useEffectA(() => {
+    function onChange() {
+      const phys = physicalSize();
+      // Tolerancia de 4 px reales para absorber redondeos del navegador.
+      if (Math.abs(phys.w - _lastPhysical.w) < 4 && Math.abs(phys.h - _lastPhysical.h) < 4) {
+        // Mismo display, distinto zoom — no actualizamos el state.
+        return;
+      }
+      _lastPhysical = phys;
+      setSize(readSize());
+    }
+    window.addEventListener("resize", onChange);
+    window.addEventListener("orientationchange", onChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onChange);
+    }
+    return () => {
+      window.removeEventListener("resize", onChange);
+      window.removeEventListener("orientationchange", onChange);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", onChange);
+      }
+    };
+  }, []);
+  return size;
+}
+function readSize() {
+  if (typeof window === "undefined") return { vw: 0, vh: 0 };
+  const vv = window.visualViewport;
+  // Cuando el usuario hace pinch-zoom, vv.scale > 1 y vv.width/height
+  // reflejan la región visible (más pequeña). Usar esos valores haría
+  // que la escala del lienzo se reduzca al hacer zoom — exactamente lo
+  // contrario de lo que el usuario quiere. Solo confiamos en vv cuando
+  // scale ≈ 1 (sin zoom) — ahí da una lectura más fiel que innerWidth/
+  // Height en iOS Safari (descuenta correctamente la URL bar visible).
+  if (vv && Math.abs(vv.scale - 1) < 0.05) {
+    return { vw: vv.width, vh: vv.height };
+  }
+  return { vw: window.innerWidth, vh: window.innerHeight };
+}
+
+// ─────────────────────────────────────────────────────────────
+// DeviceStage — escala el lienzo lógico 900×540 (paisaje) al viewport.
+//
+// Reglas:
+//   · Desktop / tablet: sin marco, sin notch, fondo cósmico edge-to-edge.
+//   · Mobile portrait: lienzo letterboxed Y overlay BLOQUEANTE "Gira el
+//     teléfono". El contenido del juego no es accesible hasta que rote.
+//   · Mobile landscape: lienzo escalado al viewport visible (visualViewport,
+//     no innerHeight, para no clippearse debajo de la URL bar de iOS).
+// ─────────────────────────────────────────────────────────────
+function DeviceStage({ children, variant = "cosmic" }) {
+  const W = 900, H = 540;
+  const { vw, vh } = useViewportSize();
+  const minSide = Math.min(vw, vh);
+  const maxSide = Math.max(vw, vh);
+  let mode = "desktop";
+  if (maxSide < 820) mode = "mobile";
+  else if (minSide < 820) mode = "tablet";
+  const portrait = vh > vw;
+  const baseScale = Math.max(Math.min(vw / W, vh / H), 0.15);
+
+  // Detección de teléfono independiente del modo: cualquier dispositivo con
+  // lado menor ≤ 600 CSS-px es un teléfono. Cubre todos los teléfonos
+  // actuales (iPhone SE 320 → S25 Ultra/Pro Max ~432) con margen para
+  // modelos futuros más anchos. La menor tablet (iPad mini 744) queda
+  // bien por encima, así que no se rompe el caso "tablet portrait usable
+  // letterboxed". Solo bloqueamos cuando teléfono Y portrait — el lienzo
+  // paisaje queda demasiado pequeño para jugar.
+  const isPhone = minSide <= 600;
+  const lockPortrait = isPhone && portrait;
+
+  // Tamaño de los glifos del fondo: equivalente al `clamp(48px, 7vmin, 110px)`
+  // que tenía el CSS, pero calculado a partir del vw/vh DEFENDIDO contra
+  // cambios de DPR. Esto evita que con ctrl+rueda del mouse los glifos
+  // crezcan más rápido que el lienzo (el lienzo se congela vía la defensa
+  // del DPR; si CSS lee el vmin actual, los glifos no se congelan y desync).
+  const glyphSize = Math.max(48, Math.min(minSide * 0.07, 110));
+
+  const debug = typeof window !== "undefined" && /(?:^|[#&])debug(?:&|$)/.test(window.location.hash || "");
+
+  // ─── Pinch-zoom y pan custom ─────────────────────────────────
+  // Reemplaza el zoom nativo del browser. Razón: con el lienzo letterboxed
+  // dentro de un wrapper viewport-sized, el visual viewport del browser
+  // puede panear hasta dejar al usuario mirando solo el cosmos vacío de los
+  // bordes — el "rebote" reportado en iPhone (ver .planning/ios-zoom.md).
+  // Aquí los gestos operan sobre el transform del lienzo, así que el zoom
+  // siempre gravita alrededor del contenido y no deriva a un borde
+  // decorativo.
+  const wrapperRef = useRefA(null);
+  const gestureRef = useRefA(null);
+  const stateRef = useRefA({ userZoom: 1, pan: { x: 0, y: 0 } });
+  const [userZoom, setUserZoom] = useStateA(1);
+  const [pan, setPan] = useStateA({ x: 0, y: 0 });
+  const [duringGesture, setDuringGesture] = useStateA(false);
+
+  useEffectA(() => {
+    stateRef.current = { userZoom, pan };
+  }, [userZoom, pan]);
+
+  // Reset al cambiar viewport (rotación, resize). Si no, el pan queda
+  // referenciado a un viewport que ya no existe.
+  useEffectA(() => {
+    setUserZoom(1);
+    setPan({ x: 0, y: 0 });
+    setDuringGesture(false);
+  }, [vw, vh]);
+
+  useEffectA(() => {
+    if (lockPortrait) return;
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const Z_MIN = 1;
+    const Z_MAX = 4;
+
+    const dist = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    const mid = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+
+    function clampPan(zoom, px, py) {
+      // Pan máximo: la mitad del exceso del lienzo escalado sobre el viewport.
+      // En zoom=1 el max es 0 (lienzo cabe en viewport, no hay donde panear).
+      // En zoom=N el lienzo mide N veces el lado contain, así que el usuario
+      // puede mover ±(sw - vw)/2 antes de que la orilla del lienzo cruce la
+      // orilla del viewport. Esto evita perder el contenido fuera de pantalla.
+      const sw = baseScale * zoom * W;
+      const sh = baseScale * zoom * H;
+      const maxX = Math.max(0, (sw - vw) / 2);
+      const maxY = Math.max(0, (sh - vh) / 2);
+      return {
+        x: Math.max(-maxX, Math.min(maxX, px)),
+        y: Math.max(-maxY, Math.min(maxY, py)),
+      };
+    }
+
+    function applyState(z, px, py) {
+      stateRef.current = { userZoom: z, pan: { x: px, y: py } };
+      setUserZoom(z);
+      setPan({ x: px, y: py });
+    }
+
+    function onTouchStart(e) {
+      const { userZoom: z0, pan: p0 } = stateRef.current;
+      if (e.touches.length >= 2) {
+        const [t0, t1] = e.touches;
+        gestureRef.current = {
+          mode: "pinch",
+          d0: dist(t0, t1),
+          m0: mid(t0, t1),
+          z0, p0: { ...p0 },
+        };
+        setDuringGesture(true);
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        const t = e.touches[0];
+        gestureRef.current = {
+          mode: "pan-armed",
+          startX: t.clientX,
+          startY: t.clientY,
+          z0, p0: { ...p0 },
+        };
+        // No preventDefault — un tap simple debe seguir generando click.
+      }
+    }
+
+    function onTouchMove(e) {
+      const g = gestureRef.current;
+      if (!g) return;
+
+      // Si en medio de un gesto entra un segundo dedo, transición a pinch
+      // tomando el estado actual como punto de partida.
+      if (e.touches.length >= 2 && g.mode !== "pinch") {
+        const [t0, t1] = e.touches;
+        const { userZoom: zNow, pan: pNow } = stateRef.current;
+        gestureRef.current = {
+          mode: "pinch",
+          d0: dist(t0, t1),
+          m0: mid(t0, t1),
+          z0: zNow, p0: { ...pNow },
+        };
+        setDuringGesture(true);
+        e.preventDefault();
+        return;
+      }
+
+      if (e.touches.length >= 2 && g.mode === "pinch") {
+        const [t0, t1] = e.touches;
+        const d = dist(t0, t1);
+        const m = mid(t0, t1);
+        const ratio = d / g.d0;
+        // Permitimos pasar transitoriamente bajo Z_MIN para sensación elástica
+        // durante el gesto; en touchend hacemos snap-back al rango válido.
+        const newZoom = Math.max(Z_MIN * 0.7, Math.min(Z_MAX * 1.05, g.z0 * ratio));
+        const r = newZoom / g.z0;
+        const ux = g.m0.x - vw / 2;
+        const uy = g.m0.y - vh / 2;
+        // Fórmula que mantiene el punto medio de la pinza anclado al mismo
+        // píxel del lienzo durante todo el gesto. Derivación:
+        //   panX_new = (mx0 - vw/2) + (newZoom/z0) * (panX0 - (mx0 - vw/2))
+        //              + (mx_now - mx0)   ← desplazamiento del propio gesto
+        const newPanX = ux + r * (g.p0.x - ux) + (m.x - g.m0.x);
+        const newPanY = uy + r * (g.p0.y - uy) + (m.y - g.m0.y);
+        applyState(newZoom, newPanX, newPanY);
+        e.preventDefault();
+      } else if (e.touches.length === 1 && g.mode === "pan-armed") {
+        if (g.z0 <= 1.001) return; // sin zoom no panea — dejamos pasar el tap
+        const t = e.touches[0];
+        const dx = t.clientX - g.startX;
+        const dy = t.clientY - g.startY;
+        if (Math.hypot(dx, dy) > 8) {
+          gestureRef.current = { ...g, mode: "pan" };
+          setDuringGesture(true);
+          e.preventDefault();
+        }
+      } else if (e.touches.length === 1 && g.mode === "pan") {
+        const t = e.touches[0];
+        const dx = t.clientX - g.startX;
+        const dy = t.clientY - g.startY;
+        applyState(g.z0, g.p0.x + dx, g.p0.y + dy);
+        e.preventDefault();
+      }
+    }
+
+    function onTouchEnd(e) {
+      const g = gestureRef.current;
+      if (!g) return;
+      if (e.touches.length === 0) {
+        const { userZoom: z, pan: p } = stateRef.current;
+        const clampedZ = Math.max(Z_MIN, Math.min(Z_MAX, z));
+        let cp;
+        if (clampedZ <= 1.001) {
+          cp = { x: 0, y: 0 };
+        } else {
+          cp = clampPan(clampedZ, p.x, p.y);
+        }
+        applyState(clampedZ, cp.x, cp.y);
+        setDuringGesture(false);
+        gestureRef.current = null;
+      }
+    }
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [vw, vh, baseScale, lockPortrait]);
+
+  const totalScale = baseScale * userZoom;
+
+  return (
+    <div ref={wrapperRef} style={{
+      width: "100vw", height: "100dvh",
+      minHeight: "-webkit-fill-available",
+      overflow: "hidden",
+      position: "relative",
+      background: variant === "chalkboard" ? "#0b3a2d" : "#050214",
+      // `touch-action: none` desactiva todos los gestos que el browser
+      // interpretaría por su cuenta (pinch, pan, doble-tap-zoom). Los
+      // implementamos en JS sobre el transform del lienzo para que el
+      // zoom siempre quede anclado al contenido y nunca derive a los
+      // bordes letterbox del wrapper. Los click/tap en botones siguen
+      // funcionando — esto solo bloquea gestos del browser, no eventos.
+      touchAction: "none",
+    }}>
+      <CosmosBg variant={variant} glyphSize={glyphSize} />
+
+      {/* Lienzo lógico 900×540 centrado y escalado.
+          El transform combina el escalado base (contain del viewport),
+          el zoom del usuario y el pan acumulado. El orden CSS es
+          right-to-left: scale → translate(pan) → translate(-50%,-50%). */}
+      <div style={{
+        width: W, height: H,
+        position: "absolute",
+        left: "50%", top: "50%",
+        transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${totalScale})`,
+        transformOrigin: "center center",
+        overflow: "hidden",
+        // Sin transición durante el gesto activo (el lienzo sigue la pinza
+        // al instante); con transición elástica al soltar, para que el
+        // snap-back de zoom/pan a los límites válidos no sea abrupto.
+        transition: duringGesture ? "none" : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)",
+        willChange: "transform",
+      }}>
+        {children}
+      </div>
+
+      {lockPortrait && <RotateLockOverlay />}
+      {debug && (
+        <div style={{
+          position: "fixed", top: 6, left: 6, zIndex: 999999,
+          background: "rgba(0,0,0,0.85)", color: "#0f0",
+          font: "11px ui-monospace,Menlo,monospace",
+          padding: "6px 8px", borderRadius: 6,
+          maxWidth: "90vw", whiteSpace: "pre",
+          pointerEvents: "none",
+        }}>
+{`vw=${vw} vh=${vh}
+min=${minSide} max=${maxSide}
+mode=${mode} portrait=${portrait}
+isPhone=${isPhone} LOCK=${lockPortrait}
+zoom=${userZoom.toFixed(2)} pan=${pan.x.toFixed(0)},${pan.y.toFixed(0)}
+vv=${typeof window!=="undefined" && window.visualViewport ? "yes" : "no"}
+ua=${(typeof navigator!=="undefined" ? navigator.userAgent : "?").slice(0,60)}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Overlay bloqueante de rotación. En mobile portrait cubre toda la pantalla
+// con un mensaje claro y un ícono animado. NO se puede descartar — el usuario
+// DEBE girar el dispositivo para acceder al juego. Se desmonta solo cuando
+// el viewport pasa a landscape.
+function RotateLockOverlay() {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Gira tu teléfono para jugar"
+      style={{
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "linear-gradient(180deg,#050214 0%,#0a0628 100%)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        textAlign: "center", padding: "32px 24px",
+        color: "#fce9a8",
+        fontFamily: "var(--ed-font-display, system-ui)",
+      }}
+    >
+      <div
+        style={{
+          width: 132, height: 132, marginBottom: 28,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          animation: "ed-rotate-lock 2.4s ease-in-out infinite",
+        }}
+        aria-hidden="true"
+      >
+        {/* Ícono de teléfono que rota */}
+        <svg viewBox="0 0 100 100" width="120" height="120" fill="none">
+          <rect x="36" y="14" width="28" height="72" rx="6"
+                stroke="#f2c260" strokeWidth="3" fill="rgba(242,194,96,0.08)" />
+          <rect x="42" y="22" width="16" height="48" rx="2" fill="rgba(242,194,96,0.18)" />
+          <circle cx="50" cy="78" r="2.5" fill="#f2c260" />
+        </svg>
+      </div>
+      <div style={{
+        fontWeight: 800,
+        fontSize: "clamp(18px, 5.2vw, 26px)",
+        lineHeight: 1.15,
+        textTransform: "uppercase", letterSpacing: "0.02em",
+        marginBottom: 12,
+      }}>
+        Gira tu teléfono
+      </div>
+      <div style={{
+        fontWeight: 500,
+        fontSize: "clamp(13px, 4vw, 16px)",
+        lineHeight: 1.4,
+        color: "rgba(252,233,168,0.78)",
+        maxWidth: "min(320px, 80vw)",
+      }}>
+        Pon tu teléfono de lado para jugar.
+      </div>
+      <style>{`
+        @keyframes ed-rotate-lock {
+          0%   { transform: rotate(0deg); }
+          45%  { transform: rotate(0deg); }
+          70%  { transform: rotate(-90deg); }
+          100% { transform: rotate(-90deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// App principal
+// ─────────────────────────────────────────────────────────────
+function App() {
+  const [route, setRoute] = useStateA("home");
+  const [app, setApp] = useStateA({
+    studentName: "",
+    character: "astronauta",
+    level: "basic",
+    stars: 0,
+    sessionStart: Date.now(),
+    gameSeed: 0,
+  });
+
+  function go(r) {
+    // Al (re)entrar al juego, regeneramos la seed para que GameScreen se remonte
+    // y reinicie ronda, tiempo, racha, etc. También reseteamos las estrellas:
+    // cada partida empieza desde 0, no acumula entre rondas.
+    if (r === "game") {
+      setApp((s) => ({ ...s, gameSeed: (s.gameSeed || 0) + 1, stars: 0 }));
+    }
+    setRoute(r);
+  }
+
+  const screenProps = { app, setApp, go };
+
+  let Screen = window.HomeScreen;
+  if (route === "character") Screen = window.CharacterScreen;
+  else if (route === "game") Screen = window.GameScreen;
+  else if (route === "results") Screen = window.ResultsScreen;
+
+  const variant = route === "game" ? "chalkboard" : "cosmic";
+
+  return (
+    <DeviceStage variant={variant}>
+      <Screen key={route === "game" ? `game-${app.gameSeed}` : route} {...screenProps} />
+    </DeviceStage>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+
+</script>
+</body>
+</html>
