@@ -8,15 +8,29 @@
 - **Personaje destacado** (`charId`: astronauta / naturalista / quimica / geologo).
 - **Slug**: `JUEGO-N-<kebab-case>` con N = siguiente ordinal libre en `juegos/`.
 
-## 1. Clonar la PLANTILLA
+## 1. Clonar la base correcta
 
-Copiar **toda** la carpeta `juegos/_PLANTILLA/` a `juegos/JUEGO-N-<slug>/`,
-incluyendo `assets/`, `counter.php`, `.planning/bundle.*`, los 5 `.jsx`, los dos
-HTML y los docs (`CLAUDE.md`, `USER.md`, `MEMORY.md`).
+**Importante (de qué clonar):**
+- La `_PLANTILLA` es un **demo mínimo** de opción múltiple: NO trae el formato
+  EDINUN completo (personaje guía con bocadillo, botones laterales, zona central
+  centrada).
+- El **formato EDINUN real** vive en los juegos publicados. Para un juego nuevo con
+  ese formato, **clonar del ÚLTIMO juego terminado** (hoy `JUEGO-2-la-semilla`),
+  que ya trae los arreglos de pulido (ver `memory/aprendizajes-de-diseno.md`
+  §6 centrado, §7 bocadillo sin sombra, §8 puntos finales) y el elenco en orden
+  Luna · Bruno · Tomi · Mía sin `drop-shadow`. Así NO se re-corrige lo ya corregido.
+- Clonar de `_PLANTILLA` solo si se quiere partir del demo simple a propósito.
 
-En PowerShell:
+Copiar **toda** la carpeta fuente a `juegos/JUEGO-N-<slug>/`, incluyendo `assets/`,
+`counter.php`, `.planning/bundle.*`, los 5 `.jsx`, los dos HTML y los docs
+(`CLAUDE.md`, `USER.md`, `MEMORY.md`). Tras clonar, **limpiar** lo específico del
+juego fuente: `visits.txt` (si existe), `MEMORY.md`, el array de datos de la
+mecánica y los textos del tema.
+
+En PowerShell (clonando del último juego terminado):
 ```powershell
-Copy-Item -Recurse "juegos\_PLANTILLA" "juegos\JUEGO-N-<slug>"
+Copy-Item -Recurse "juegos\JUEGO-2-la-semilla" "juegos\JUEGO-N-<slug>"
+# o, para el demo simple:  Copy-Item -Recurse "juegos\_PLANTILLA" "juegos\JUEGO-N-<slug>"
 ```
 
 ## 2. Implementar la mecánica (`game-screens.jsx`)
