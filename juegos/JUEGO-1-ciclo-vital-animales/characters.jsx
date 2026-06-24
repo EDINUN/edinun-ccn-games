@@ -55,7 +55,6 @@ function makeCharacter(id, sparkleColor, sparkleSeed) {
             width: "100%", height: "100%",
             objectFit: "contain",
             display: "block",
-            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.35))",
             userSelect: "none",
             pointerEvents: "none",
           }}
@@ -131,20 +130,20 @@ const CHARACTERS = [
     Component: NaturalistaCharacter,
   },
   {
-    id: "quimica",
-    name: "Mía",
-    title: "La Científica",
-    specialty: "Maestra de los experimentos",
-    quote: "¡Vamos a mezclar y descubrir!",
-    Component: QuimicaCharacter,
-  },
-  {
     id: "geologo",
     name: "Tomi",
     title: "El Geólogo",
     specialty: "Explorador de rocas y volcanes",
     quote: "¡La Tierra esconde mil tesoros!",
     Component: GeologoCharacter,
+  },
+  {
+    id: "quimica",
+    name: "Mía",
+    title: "La Científica",
+    specialty: "Maestra de los experimentos",
+    quote: "¡Vamos a mezclar y descubrir!",
+    Component: QuimicaCharacter,
   },
 ];
 

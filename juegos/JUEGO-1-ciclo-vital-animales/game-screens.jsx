@@ -32,7 +32,7 @@ const PREGUNTAS = [
     opciones: [{ e: "🐔", t: "Gallina" }, { e: "🐶", t: "Perro" }, { e: "🐮", t: "Vaca" }], correcta: 0 },
   { ctx: "🤱", enunciado: "¿Quién nace de su mamá?", pista: "Nace de la pancita de su mamá",
     opciones: [{ e: "🐢", t: "Tortuga" }, { e: "🐶", t: "Perro" }, { e: "🐟", t: "Pez" }], correcta: 1 },
-  { ctx: "🥚", enunciado: "¿Quién también nace de un huevo?", pista: "Otro que sale de un cascarón",
+  { ctx: "🥚", enunciado: "¿Quién nace de un huevo?", pista: "Sale de un cascarón",
     opciones: [{ e: "🐱", t: "Gato" }, { e: "🐘", t: "Elefante" }, { e: "🐢", t: "Tortuga" }], correcta: 2 },
   { ctx: "🍼", enunciado: "¿Quién toma leche de su mamá?", pista: "El que hace muu y da leche",
     opciones: [{ e: "🐮", t: "Vaca" }, { e: "🐔", t: "Gallina" }, { e: "🐸", t: "Rana" }], correcta: 0 },
@@ -44,11 +44,11 @@ const PREGUNTAS = [
     opciones: [{ e: "🍎", t: "Manzana" }, { e: "⚽", t: "Pelota" }, { e: "🥚", t: "Huevo" }], correcta: 2 },
   { ctx: "🥚", enunciado: "Del huevo de la gallina nace un…", pista: "Es el bebé de la gallina",
     opciones: [{ e: "🐸", t: "Rana" }, { e: "🐣", t: "Pollito" }, { e: "🦋", t: "Mariposa" }], correcta: 1 },
-  { ctx: "🐸", enunciado: "¿Quién vive en el agua y en la tierra?", pista: "De chiquito nada, de grande salta",
+  { ctx: "🐸", enunciado: "¿Quién vive en el agua y en la tierra?", pista: "De pequeño nada, de grande salta",
     opciones: [{ e: "🐸", t: "Rana" }, { e: "🐔", t: "Gallina" }, { e: "🐶", t: "Perro" }], correcta: 0 },
   { ctx: "🥚", enunciado: "¿Quién pone huevos en el agua?", pista: "Vive en el agua y nada con aletas",
     opciones: [{ e: "🐟", t: "Pez" }, { e: "🐮", t: "Vaca" }, { e: "🐶", t: "Perro" }], correcta: 0 },
-  { ctx: "🥚", enunciado: "¿Qué animal también pone huevos?", pista: "Nada en el lago y hace cuac",
+  { ctx: "🥚", enunciado: "¿Qué animal pone huevos?", pista: "Nada en el lago y hace cuac",
     opciones: [{ e: "🐱", t: "Gato" }, { e: "🦆", t: "Pato" }, { e: "🐘", t: "Elefante" }], correcta: 1 },
   { ctx: "🤱", enunciado: "¿Quién nace de su mamá, no de un huevo?", pista: "Hace miau y toma lechita",
     opciones: [{ e: "🐔", t: "Gallina" }, { e: "🐢", t: "Tortuga" }, { e: "🐱", t: "Gato" }], correcta: 2 },
@@ -183,11 +183,16 @@ function GameScreen({ app, setApp, go }) {
       setFeedbackMsg("+1 ⭐");
       setTimeout(() => advance(newLog, newAciertos, newStars, isLast), 1050);
     } else {
+      // Caso ERROR: la revelación LIMPIA (correcta en VERDE, erróneas en ROJO,
+      // bocadillo "¡Casi! Mira la respuesta") se ve 3 s ENTERAS y SIN overlay,
+      // para que el niño alcance a estudiar cuál era la correcta. RECIÉN DESPUÉS
+      // aparece el "¡UPS!" como reacción breve y se avanza. (El overlay no debe
+      // tapar la revelación durante esos 3 s — por eso aparece a los 3000 ms.)
       setTimeout(() => {
         setFeedback("err");
         setFeedbackMsg(ANIMOS[idx % ANIMOS.length]);
-      }, 720);
-      setTimeout(() => advance(newLog, newAciertos, newStars, isLast), 2000);
+      }, 2000);
+      setTimeout(() => advance(newLog, newAciertos, newStars, isLast), 2700);
     }
   }
 
@@ -271,8 +276,11 @@ function GameScreen({ app, setApp, go }) {
         <div style={{ marginTop: -2, fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 14, color: "#fce9a8", letterSpacing: "0.04em", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>{char.name}</div>
       </div>
 
-      {/* ── Zona central: enunciado + cartel + opciones, repartidos parejo ── */}
-      <div style={{ position: "absolute", top: 60, bottom: 18, left: 240, right: 192, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
+      {/* ── Zona central: enunciado + cartel + opciones, repartidos parejo ──
+          Márgenes IGUALES (215/215) para centrar el bloque en el eje X del
+          lienzo (900): el enunciado mide hasta 470 → (900-470)/2 = 215. El
+          personaje vive en el margen izquierdo y los botones en el derecho. */}
+      <div style={{ position: "absolute", top: 60, bottom: 18, left: 215, right: 215, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
         {/* Enunciado */}
         <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 23, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 470 }}>
           {q.enunciado}

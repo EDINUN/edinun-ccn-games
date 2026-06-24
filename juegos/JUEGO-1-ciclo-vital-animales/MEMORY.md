@@ -37,3 +37,36 @@ Bitácora de decisiones de diseño, bugs y resoluciones, en orden cronológico
   las recientes (`localStorage`). Recargar / cambiar de niño da preguntas nuevas.
 - Bug corregido: el cierre (`setTimeout` → `advance`) perdía la última ronda; se
   pasan los valores nuevos por argumento.
+
+## 2026-06-24 — Centrado del bloque de juego en el eje X
+
+- La usuaria notó (con una línea de referencia en el centro de la pantalla) que el
+  enunciado + cartel + opciones quedaban corridos a la derecha. Causa: zona central
+  con **márgenes asimétricos** (`left:240` vs `right:192`) → centro en x≈474 en vez
+  de 450 (centro del lienzo 900×540).
+- **Fix:** márgenes IGUALES `left:215 / right:215` (el enunciado mide hasta 470 →
+  `(900-470)/2 = 215`). El personaje guía vive en el margen izquierdo y los botones
+  REINICIAR/SALIR en el derecho; las opciones (420 de ancho) quedan centradas en
+  240–660.
+- **Invariante:** el bloque jugable va centrado en el eje X con márgenes iguales; no
+  volver a asimetría al editar. Verificado en headless con línea roja en el centro
+  real (pasa por el cartel y la opción del medio). Mismo criterio en JUEGO-2
+  (`183/183`).
+
+## 2026-06-24 — Más tiempo para ver la respuesta correcta (caso error)
+
+- La usuaria pidió que, al equivocarse, la **pantalla LIMPIA** de revelación
+  (correcta en VERDE, erróneas en ROJO, bocadillo "¡Casi! Mira la respuesta") dure
+  más para alcanzar a estudiar cuál era. **Aclaración clave de la usuaria:** esa
+  pantalla sale ANTES del overlay "¡UPS!"; el tiempo extra va a ESA, NO a una
+  pantalla después del "¡UPS!". Tiempo final acordado: **2 s** (probó 3 s y lo
+  sintió largo).
+- **1er intento (descartado):** dejé el "¡UPS!" a 720 ms y lo retiraba a 1700 ms
+  para mostrar las fichas limpias *después*. La usuaria corrigió: eso es "después
+  del ups", no es lo que quería.
+- **Fix correcto (rama de error en `answerTap`):** la revelación se ve LIMPIA y
+  **sin overlay de 0 a 3000 ms**; recién a los **3000 ms** aparece el "¡UPS!" como
+  reacción breve, y el avance es a **3700 ms**. Las fichas verde/rojo dependen de
+  `picked` (se limpia solo en `advance`), por eso se mantienen reveladas todo ese
+  tiempo aunque `feedback` siga en null.
+- El caso de **acierto** se deja rápido (~1,05 s): no hay nada que estudiar.
