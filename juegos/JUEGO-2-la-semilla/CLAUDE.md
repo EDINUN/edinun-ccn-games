@@ -7,15 +7,13 @@
 ## Project
 
 **Juego: "La semilla".** Carpeta autocontenida del repo multi-juego
-`edinun-ccn-games` (Ciencias Naturales). Enseña **la semilla** (TEMA 2 del libro):
-qué necesita para crecer (agua, sol, tierra), dónde se guardan las semillas (el
-fruto), frutos con semillas, **dispersión** (viento, agua, animales) y **partes de
-la planta** (raíz, hoja, flor). Se dejan fuera los términos abstractos del libro
-(cotiledón, plúmula, micrópilo, radícula) por ser demasiado para la edad.
+`edinun-ccn-games` (Ciencias Naturales). Enseña la **secuencia de germinación de
+la semilla** (TEMA 2 del libro, actividad "ordena la germinación"): cómo crece
+paso a paso, de semilla a plantita.
 
-Mecánica **"Mira y toca"** con un giro temático: la pieza central es una **planta
-que CRECE** con cada ronda (semilla → brote → tallito → plantita). El niño ve una
-consigna corta + 3 opciones con emoji grande y toca la correcta.
+Mecánica **"Ordena la germinación"**: el niño **arrastra** las 4 imágenes de la
+planta a sus casilleros numerados (1·2·3·4) en el orden correcto
+(semilla → brote → tallito → plantita). Funciona con mouse y táctil.
 
 **Audiencia: 6 años** (registrada en `memory/audiencia_por_juego.md`). Más pequeña
 que el típico CCNN 9-12 → poco texto, objetivos grandes, sin presión de tiempo.
@@ -59,15 +57,16 @@ ilustraciones de las etapas de crecimiento** en `assets/`:
 - `semilla.png` — semilla recién sembrada en la tierra.
 - `brote.png` — brote (raíz hacia abajo, tallito hacia arriba).
 - `tallito.png` — plántula con sus primeras hojas.
-- `plantita.png` — plantita con varias hojas (sin flor).
+- `plantita.png` — plantita ya crecida (la que subió el usuario tiene una flor de
+  colores; aprobada así).
 
 El orden de etapa→archivo vive en `STAGE_FILES` (game-screens.jsx).
 
 Estilo: **escena cuadrada completa** (cielo + tierra + planta), ilustración 2D
 plana e infantil, **sin transparencia** (los generadores de chat fallaban al pedir
-fondo transparente). El marco las muestra a pantalla completa (`object-fit: cover`)
-como una ventanita de jardín. Si alguna falta, `GrowingPlant` cae a un emoji por
-etapa (🫘 → 🌱 → 🌿 → 🪴) sobre un degradado cielo/tierra y el juego sigue jugable.
+fondo transparente). El componente `PlantCard` las muestra a pantalla completa
+(`object-fit: cover`) como una ventanita de jardín. Si alguna falta, cae a un emoji
+por etapa (🫘 → 🌱 → 🌿 → 🪴) sobre un degradado cielo/tierra y el juego sigue jugable.
 
 ### Contrato del shell
 
@@ -77,47 +76,45 @@ etapa (🫘 → 🌱 → 🌿 → 🪴) sobre un degradado cielo/tierra y el jue
   Personalizado: label del tema, subtítulo, categoría y glifos del fondo
   (semilla/planta/frutos), y la guía por defecto (`quimica`).
 - `game-screens.jsx`: **la mecánica de este juego.** Define `GameScreen`,
-  `ResultsScreen` y el componente `GrowingPlant`.
+  `ResultsScreen` y los componentes `PlantCard` (foto de etapa) y `Draggable`.
 
 ### Mecánica del juego (`GameScreen`)
 
-"Mira y toca" sobre el **formato EDINUN**: HUD (logo + "RONDA" con dots + ⏱ tiempo
-+ ⭐), **personaje guía con bocadillo de pista** a la izquierda, **planta que crece
-en el centro** (marco con cielo/tierra + rótulo de etapa), 3 opciones tipo **ficha
-candy** (128×128), columna de botones a la derecha (REINICIAR/SALIR), overlay de
-feedback "¡EXCELENTE!/¡UPS!" y **ResultsScreen tipo reporte académico imprimible**.
+"Ordena la germinación" sobre el **formato EDINUN**: HUD (logo + ⏱ tiempo + ⭐),
+**personaje guía con bocadillo** a la izquierda, **4 casilleros numerados**
+(1·2·3·4) arriba y una **bandeja** con las 4 fotos barajadas abajo; columna de
+botones a la derecha (REINICIAR/SALIR), overlay de feedback "¡EXCELENTE!/¡CASI!" y
+**ResultsScreen tipo reporte académico imprimible**.
 
-- Cada partida son **4 RONDAS** elegidas al azar de un banco de **12** preguntas
-  (`PREGUNTAS`), evitando las vistas recientemente (`localStorage`,
-  `RECENT_KEY = "edinun_ccn_semilla_recientes_v1"`): **recargar o cambiar de niño
-  NO repite** las mismas preguntas.
-- **La planta crece con la ronda** (`GrowingPlant stage={idx+1}`): ronda 1 =
-  semilla … ronda 4 = plantita. Crecer depende de avanzar (no de acertar) → siempre
-  es positivo y por eso **fallar NO baja el progreso**.
-- El niño TOCA la opción correcta directo (no hay VERIFICAR/BORRAR). **Acierto** →
-  ficha verde + ⭐ + "¡EXCELENTE!". **Fallo** → revela la correcta (verde)
-  dejando ver la tocada (rojo), overlay "¡UPS!"; no resta progreso.
-- Sin chip de tema en el HUD (solo se usa cuando hay 2+ niveles). Hay timer
-  informativo (no penaliza ni limita).
-- El banco cubre: necesidades de la semilla (agua/sol/tierra), el fruto guarda
-  semillas, frutos con semillas (sandía, girasol), dispersión (viento/agua/animal)
-  y partes de la planta (raíz/hoja/flor). La posición de la correcta varía.
-
-**Bug evitado:** `advance()` corre desde un `setTimeout`, así que recibe los
-valores nuevos (`newLog/newAciertos/newStars`) por argumento — leerlos del closure
-daría los viejos y perdería la última ronda en el reporte.
+- El niño **arrastra** cada foto a su casillero. El arrastre usa **Pointer Events**
+  (mouse + táctil). Como el lienzo lógico 900×540 se escala con `transform`, se
+  convierten las coords de pantalla a lógicas con el rect de `rootRef` (`toLogical`).
+  Una **tarjeta fantasma** (`ghost`) sigue al dedo; al soltar se usa
+  `document.elementFromPoint` + `closest('[data-slot]')` para detectar el casillero.
+  Las tarjetas llevan `touch-action: none` para no hacer scroll al arrastrar.
+- Estado: `placement[stageId] = "tray" | 0..3`. Soltar sobre un casillero ocupado
+  **devuelve** al ocupante a la bandeja; soltar sobre la bandeja saca la foto del
+  casillero; soltar fuera la deja donde estaba.
+- Al colocar las **4**, se evalúa: casillero correcto si `slot[i] === i`. **Acierto
+  total** → "¡EXCELENTE!". Con errores → **revela el orden correcto** (casilleros
+  verdes/rojos + rótulo de la etapa correcta), "¡CASI!"; **no resta** progreso. Las
+  ⭐ = posiciones correctas.
+- El reporte lista las **4 posiciones**: lo que puso el niño vs. lo correcto.
+- Solo hay una secuencia correcta; REINICIAR / "jugar otra vez" **barajan** la
+  bandeja para que nunca empiece resuelta (`initialTrayOrder`).
 
 Reglas EDINUN que la mecánica respeta (ver `USER.md` y `memory/aprendizajes-de-diseno.md`):
-- Fallar no baja el progreso; completar las 4 rondas cuenta como éxito.
-- Al fallar, revelar la correcta dejando ver lo que tocó el niño.
+- Fallar no baja el progreso; completar la secuencia cuenta como éxito.
+- Al fallar, revelar el orden correcto dejando ver lo que puso el niño.
 - Salir/reiniciar siempre con modal.
-- `markFirstAttempt()` en la primera respuesta; `incrementGamesCompleted()` al terminar.
+- `markFirstAttempt()` en el primer arrastre; `incrementGamesCompleted()` al evaluar.
 
 ### Personajes
 
 Catálogo compartido: Luna (astronauta), Bruno (naturalista), Mía (química), Tomi
-(geólogo). **Personaje destacado en el landing y guía por defecto: `quimica`
-(Mía)** — enmarcada como la científica que siembra una semilla y observa cómo crece.
+(geólogo). **Personaje destacado en el landing y guía por defecto: `naturalista`
+(Bruno)** — encaja con el tema (Bruno es "amigo de plantas y animales"). El niño
+puede elegir otro guía en la pantalla de selección.
 
 ## Contador de visitas
 

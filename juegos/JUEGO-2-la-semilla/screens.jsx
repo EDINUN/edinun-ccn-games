@@ -272,7 +272,7 @@ function HomeScreen({ app, setApp, go }) {
             color: "#fce9a8",
             textAlign: "center",
           }}>
-            ¿Cómo nace y crece una planta? 🌱 {/* ← PERSONALIZAR: subtítulo corto */}
+            Ordena cómo crece la semilla 🌱 {/* ← PERSONALIZAR: subtítulo corto */}
           </div>
 
           <div>
@@ -306,7 +306,12 @@ function HomeScreen({ app, setApp, go }) {
 // 2. SELECCIÓN DE PERSONAJE
 // ─────────────────────────────────────────────────────────────
 function CharacterScreen({ app, setApp, go }) {
-  const [sel, setSel] = useState(app.character || "quimica");
+  // Predeterminado de este juego: Bruno (naturalista). El shell arranca con
+  // character "astronauta", así que tratamos ese valor inicial como "sin elegir"
+  // y mostramos Bruno; si el niño ya eligió otro guía, se respeta.
+  const [sel, setSel] = useState(
+    app.character && app.character !== "astronauta" ? app.character : "naturalista"
+  );
   const current = CHARACTERS.find((c) => c.id === sel) || CHARACTERS[0];
 
   function choose() {
