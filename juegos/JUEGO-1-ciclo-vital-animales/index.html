@@ -679,29 +679,29 @@ const ROUNDS = 4;
 //   opciones:[{e,t}], correcta: idx }. Posición de la correcta variada.
 // ─────────────────────────────────────────────────────────────
 const PREGUNTAS = [
-  { ctx: "🥚", enunciado: "¿Quién nace de un huevo?", pista: "Busca al animal que pone huevos",
+  { ctx: "🥚", enunciado: "¿Quién nace de un huevo?", pista: "Busca al animal que pone huevos.",
     opciones: [{ e: "🐔", t: "Gallina" }, { e: "🐶", t: "Perro" }, { e: "🐮", t: "Vaca" }], correcta: 0 },
-  { ctx: "🤱", enunciado: "¿Quién nace de su mamá?", pista: "Nace de la pancita de su mamá",
+  { ctx: "🤱", enunciado: "¿Quién nace de su mamá?", pista: "Nace de la pancita de su mamá.",
     opciones: [{ e: "🐢", t: "Tortuga" }, { e: "🐶", t: "Perro" }, { e: "🐟", t: "Pez" }], correcta: 1 },
-  { ctx: "🥚", enunciado: "¿Quién nace de un huevo?", pista: "Sale de un cascarón",
+  { ctx: "🥚", enunciado: "¿Quién nace de un huevo?", pista: "Sale de un cascarón.",
     opciones: [{ e: "🐱", t: "Gato" }, { e: "🐘", t: "Elefante" }, { e: "🐢", t: "Tortuga" }], correcta: 2 },
-  { ctx: "🍼", enunciado: "¿Quién toma leche de su mamá?", pista: "El que hace muu y da leche",
+  { ctx: "🍼", enunciado: "¿Quién toma leche de su mamá?", pista: "El que hace muu y da leche.",
     opciones: [{ e: "🐮", t: "Vaca" }, { e: "🐔", t: "Gallina" }, { e: "🐸", t: "Rana" }], correcta: 0 },
-  { ctx: "🦋", enunciado: "Del huevo de la mariposa sale una…", pista: "Antes de volar, se arrastra despacito",
+  { ctx: "🦋", enunciado: "Del huevo de la mariposa sale una…", pista: "Antes de volar, se arrastra despacito.",
     opciones: [{ e: "🐝", t: "Abeja" }, { e: "🐛", t: "Oruga" }, { e: "🐌", t: "Caracol" }], correcta: 1 },
-  { ctx: "🐛", enunciado: "La oruga se convierte en…", pista: "Le crecen alas de colores",
+  { ctx: "🐛", enunciado: "La oruga se convierte en…", pista: "Le crecen alas de colores.",
     opciones: [{ e: "🦋", t: "Mariposa" }, { e: "🐔", t: "Gallina" }, { e: "🐟", t: "Pez" }], correcta: 0 },
-  { ctx: "🐔", enunciado: "La gallina pone…", pista: "Algo que se rompe y nace un pollito",
+  { ctx: "🐔", enunciado: "La gallina pone…", pista: "Algo que se rompe y nace un pollito.",
     opciones: [{ e: "🍎", t: "Manzana" }, { e: "⚽", t: "Pelota" }, { e: "🥚", t: "Huevo" }], correcta: 2 },
-  { ctx: "🥚", enunciado: "Del huevo de la gallina nace un…", pista: "Es el bebé de la gallina",
+  { ctx: "🥚", enunciado: "Del huevo de la gallina nace un…", pista: "Es el bebé de la gallina.",
     opciones: [{ e: "🐸", t: "Rana" }, { e: "🐣", t: "Pollito" }, { e: "🦋", t: "Mariposa" }], correcta: 1 },
-  { ctx: "🐸", enunciado: "¿Quién vive en el agua y en la tierra?", pista: "De pequeño nada, de grande salta",
+  { ctx: "🐸", enunciado: "¿Quién vive en el agua y en la tierra?", pista: "De pequeño nada, de grande salta.",
     opciones: [{ e: "🐸", t: "Rana" }, { e: "🐔", t: "Gallina" }, { e: "🐶", t: "Perro" }], correcta: 0 },
-  { ctx: "🥚", enunciado: "¿Quién pone huevos en el agua?", pista: "Vive en el agua y nada con aletas",
+  { ctx: "🥚", enunciado: "¿Quién pone huevos en el agua?", pista: "Vive en el agua y nada con aletas.",
     opciones: [{ e: "🐟", t: "Pez" }, { e: "🐮", t: "Vaca" }, { e: "🐶", t: "Perro" }], correcta: 0 },
-  { ctx: "🥚", enunciado: "¿Qué animal pone huevos?", pista: "Nada en el lago y hace cuac",
+  { ctx: "🥚", enunciado: "¿Qué animal pone huevos?", pista: "Nada en el lago y hace cuac.",
     opciones: [{ e: "🐱", t: "Gato" }, { e: "🦆", t: "Pato" }, { e: "🐘", t: "Elefante" }], correcta: 1 },
-  { ctx: "🤱", enunciado: "¿Quién nace de su mamá, no de un huevo?", pista: "Hace miau y toma lechita",
+  { ctx: "🤱", enunciado: "¿Quién nace de su mamá, no de un huevo?", pista: "Hace miau y toma lechita.",
     opciones: [{ e: "🐔", t: "Gallina" }, { e: "🐢", t: "Tortuga" }, { e: "🐱", t: "Gato" }], correcta: 2 },
 ];
 
@@ -914,9 +914,9 @@ function GameScreen({ app, setApp, go }) {
             border: "1.5px solid rgba(242,194,96,0.65)", borderRadius: 16, padding: "10px 14px",
             fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 14, lineHeight: 1.3,
             color: "#fce9a8", textAlign: "center",
-            boxShadow: "0 10px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
           }}>
-            {answered ? (picked === q.correcta ? "¡Muy bien!" : "¡Casi! Mira la respuesta.") : (q.pista || "Toca al correcto")}
+            {answered ? (picked === q.correcta ? "¡Muy bien!" : "¡Casi! Mira la respuesta.") : (q.pista || "Toca al correcto.")}
             <div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "9px solid transparent", borderRight: "9px solid transparent", borderTop: "10px solid rgba(20,12,55,0.95)", filter: "drop-shadow(0 1px 0 rgba(242,194,96,0.55))" }} />
           </div>
         </div>

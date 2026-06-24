@@ -70,3 +70,15 @@ Bitácora de decisiones de diseño, bugs y resoluciones, en orden cronológico
   `picked` (se limpia solo en `advance`), por eso se mantienen reveladas todo ese
   tiempo aunque `feedback` siga en null.
 - El caso de **acierto** se deja rápido (~1,05 s): no hay nada que estudiar.
+
+## 2026-06-24 — La "sombra fea" era el box-shadow del BOCADILLO (no el personaje)
+
+- La usuaria volvió a señalar una "sombra fea al lado izquierdo" del guía. En su
+  momento se quitó por error el `drop-shadow` del PNG del personaje, pero la sombra
+  que de verdad le molestaba es el **`box-shadow` del bocadillo**
+  (`0 10px 24px rgba(0,0,0,0.55)`): contra el fondo verde proyecta un halo oscuro
+  abajo-izquierda (el bocadillo está centrado sobre el bloque del guía, así que su
+  borde izquierdo llega casi al borde del lienzo y la sombra cae en zona vacía).
+- **Fix:** el bocadillo queda con `boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)"`
+  (sin el halo oscuro); el borde dorado + el brillo interior ya lo definen. Aplicado
+  IGUAL en JUEGO-2 (mismo bocadillo). Verificado en captura: el halo desaparece.
