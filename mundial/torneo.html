@@ -215,6 +215,7 @@
   <div class="topbar">
     <div class="brand"><b>EDINUN</b> SPORTS · COPA CABEZONES</div>
     <div class="spacer"></div>
+    <div class="pill" id="btn-music">🔊 Música</div>
     <div class="pill" id="btn-reset">↺ Reiniciar torneo</div>
   </div>
 
@@ -785,6 +786,41 @@ function beep(f,d,t,v){ try{ const A=window._ac||(window._ac=new (AudioContext||
   o.connect(g); g.connect(A.destination); o.start(); o.stop(A.currentTime+(d||0.12));
   g.gain.exponentialRampToValueAtTime(0.0001,A.currentTime+(d||0.12)); }catch(e){} }
 
+/* ---------- música de fondo (generada, estilo estadio festivo) ---------- */
+const Music = {
+  ac:null, master:null, on:true, timer:null, step:0, noise:null,
+  ensure(){
+    if(!this.ac){ this.ac = window._ac || (window._ac = new (window.AudioContext||window.webkitAudioContext)());
+      this.master = this.ac.createGain(); this.master.gain.value = 0; this.master.connect(this.ac.destination); }
+    if(this.ac.state==="suspended") this.ac.resume();
+  },
+  voice(freq,type,dur,vol){ const a=this.ac,n=a.currentTime,o=a.createOscillator(),g=a.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol,n); g.gain.exponentialRampToValueAtTime(0.0008,n+dur);
+    o.connect(g); g.connect(this.master); o.start(n); o.stop(n+dur); },
+  kick(){ const a=this.ac,n=a.currentTime,o=a.createOscillator(),g=a.createGain();
+    o.type="sine"; o.frequency.setValueAtTime(150,n); o.frequency.exponentialRampToValueAtTime(48,n+0.12);
+    g.gain.setValueAtTime(0.13,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.14);
+    o.connect(g); g.connect(this.master); o.start(n); o.stop(n+0.14); },
+  hat(){ if(!this.noise){ const b=this.ac.createBuffer(1,(this.ac.sampleRate*0.05)|0,this.ac.sampleRate); const d=b.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; this.noise=b; }
+    const a=this.ac,n=a.currentTime,s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();
+    s.buffer=this.noise; f.type="highpass"; f.frequency.value=7500;
+    g.gain.setValueAtTime(0.03,n); g.gain.exponentialRampToValueAtTime(0.001,n+0.04);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(n); s.stop(n+0.05); },
+  tick(){
+    const s=this.step%16;
+    const mel=[659.25,0,783.99,880.00,659.25,0,587.33,523.25, 659.25,0,783.99,659.25,587.33,0,440.00,523.25];
+    if(mel[s]) this.voice(mel[s],"square",0.17,0.045);
+    if(s%4===0){ this.voice([130.81,196.00,220.00,174.61][s/4],"triangle",0.42,0.06); this.kick(); }
+    if(s%2===1) this.hat();
+    this.step++;
+  },
+  start(){ this.ensure(); if(this.on){ this.master.gain.setValueAtTime(0.7,this.ac.currentTime);
+    if(!this.timer){ this.step=0; this.timer=setInterval(()=>this.tick(),150); } } },
+  stop(){ if(this.timer){ clearInterval(this.timer); this.timer=null; } if(this.master) this.master.gain.value=0; },
+  toggle(){ this.on=!this.on; if(this.on) this.start(); else this.stop(); return this.on; }
+};
+
 let confettiRAF=null;
 function runConfetti(){ const c=$("confetti"); c.classList.remove("hidden"); const x=c.getContext("2d");
   const rs=()=>{c.width=innerWidth;c.height=innerHeight;}; rs(); addEventListener("resize",rs);
@@ -821,6 +857,9 @@ $("btn-reset").onclick = () => {
     '<div class="row"><button class="pill" id="ov-no">No</button><button class="btn" id="ov-yes">Sí, reiniciar</button></div>',
     ()=>{ $("ov-no").onclick=closeOverlay; $("ov-yes").onclick=()=>{ closeOverlay(); stopConfetti(); resetTournament(); }; });
 };
+$("btn-music").onclick = () => { const on = Music.toggle(); $("btn-music").textContent = on ? "🔊 Música" : "🔇 Música"; };
+/* la música arranca con el primer toque/clic (regla de autoplay del navegador) */
+window.addEventListener("pointerdown", function startMusicOnce(){ Music.start(); window.removeEventListener("pointerdown", startMusicOnce); });
 
 const GAME_CODES = new Set(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","KeyA","KeyD","KeyW","KeyS","Space"]);
 addEventListener("keydown", e=>{ if(GAME_CODES.has(e.code)) e.preventDefault(); keys.add(e.code);
