@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>⚽ Mundial EDINUN · Torneo Cabezones 🏆</title>
 <style>
   :root{
@@ -133,10 +133,20 @@
   .sb-score{display:flex; align-items:center; gap:9px; font-weight:900; font-size:clamp(26px,4.6vw,38px); line-height:1; color:#fff}
   .sb-score .sb-colon{color:var(--gold)}
   .sb-sub{margin-top:4px; font-size:13px; font-weight:800; letter-spacing:2px; color:var(--gold)}
-  canvas{display:block; width:auto; height:auto; max-width:min(1000px,100%); max-height:calc(100dvh - 248px);
+  canvas{display:block; width:auto; height:auto; max-width:min(1000px,100%); max-height:calc(100dvh - 330px);
     border-radius:14px; border:1px solid rgba(255,255,255,.14); box-shadow:0 20px 50px rgba(0,0,0,.5); background:#0a3f24; touch-action:none}
-  .m-foot{margin-top:10px; display:flex; gap:10px; align-items:center}
-  .m-keys{color:var(--muted); font-size:12px}
+  /* controles táctiles del partido */
+  .m-controls{width:100%; max-width:1000px; margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .pad{display:flex; gap:9px; align-items:center}
+  .tbtn{width:clamp(50px,7.5vw,70px); height:clamp(50px,7.5vw,70px); border-radius:16px; border:2px solid rgba(255,255,255,.25);
+    font-size:clamp(20px,3vw,28px); font-weight:900; color:#fff; background:rgba(255,255,255,.08);
+    display:grid; place-items:center; touch-action:none; -webkit-user-select:none; user-select:none; cursor:pointer; line-height:1}
+  .tbtn:active,.tbtn.on{transform:scale(.93); background:rgba(255,255,255,.22)}
+  .tbtn.p1{border-color:#3a82d6}
+  .tbtn.p2{border-color:#e0584e}
+  .tbtn.act{background:linear-gradient(180deg,rgba(255,211,78,.28),rgba(244,180,0,.12)); border-color:var(--gold)}
+  .tbtn.kick{font-size:clamp(22px,3.4vw,32px)}
+  .m-quit{flex:0 0 auto}
 
   /* ---------- OVERLAY ---------- */
   .overlay{position:fixed; inset:0; z-index:70; background:rgba(2,8,5,.8); display:grid; place-items:center; padding:20px; backdrop-filter:blur(3px)}
@@ -240,8 +250,8 @@
       <div class="pm-round" id="pm-round">SEMIFINAL 1</div>
       <div class="matchup" id="pm-matchup"></div>
       <div class="controls-help">
-        <div>🔵 J1: <span class="k">A</span><span class="k">D</span> mover · <span class="k">W</span> saltar · <span class="k">S</span> patear</div>
-        <div>🔴 J2: <span class="k">←</span><span class="k">→</span> mover · <span class="k">↑</span> saltar · <span class="k">↓</span> patear</div>
+        <div>🔵 J1: tus botones a la <b style="color:#7fb4ee">IZQUIERDA</b> · ◀▶ mover · ⤴ saltar · ⚽ patear</div>
+        <div>🔴 J2: tus botones a la <b style="color:#ff9a90">DERECHA</b> · ◀▶ mover · ⤴ saltar · ⚽ patear</div>
       </div>
       <button class="btn" id="btn-kickoff">⚽ ¡A jugar!</button>
     </div>
@@ -265,9 +275,20 @@
         </div>
       </div>
       <canvas id="game" width="1000" height="560"></canvas>
-      <div class="m-foot">
-        <button class="pill" id="btn-quit">⏹ Salir del partido</button>
-        <span class="m-keys">🔵 WASD · 🔴 Flechas · W/↑ saltar · S/↓ patear</span>
+      <div class="m-controls">
+        <div class="pad pad-left">
+          <button class="tbtn p1" data-k="KeyA" aria-label="Jugador 1 izquierda">◀</button>
+          <button class="tbtn p1" data-k="KeyD" aria-label="Jugador 1 derecha">▶</button>
+          <button class="tbtn p1 act" data-k="KeyW" aria-label="Jugador 1 saltar">⤴</button>
+          <button class="tbtn p1 act kick" data-k="KeyS" aria-label="Jugador 1 patear">⚽</button>
+        </div>
+        <button class="pill m-quit" id="btn-quit">⏹ Salir</button>
+        <div class="pad pad-right">
+          <button class="tbtn p2 act kick" data-k="ArrowDown" aria-label="Jugador 2 patear">⚽</button>
+          <button class="tbtn p2 act" data-k="ArrowUp" aria-label="Jugador 2 saltar">⤴</button>
+          <button class="tbtn p2" data-k="ArrowLeft" aria-label="Jugador 2 izquierda">◀</button>
+          <button class="tbtn p2" data-k="ArrowRight" aria-label="Jugador 2 derecha">▶</button>
+        </div>
       </div>
     </div>
   </section>
@@ -807,6 +828,23 @@ addEventListener("keydown", e=>{ if(GAME_CODES.has(e.code)) e.preventDefault(); 
   if(e.key==="Escape") closeOverlay(); });
 addEventListener("keyup", e=>{ keys.delete(e.code); });
 addEventListener("blur", ()=> keys.clear());
+
+/* ---------- controles táctiles (pantalla táctil) ---------- */
+function bindTouchControls(){
+  document.querySelectorAll(".tbtn").forEach(b=>{
+    const code=b.dataset.k;
+    const press=e=>{ if(e.cancelable) e.preventDefault(); keys.add(code); b.classList.add("on"); };
+    const release=e=>{ if(e&&e.cancelable) e.preventDefault(); keys.delete(code); b.classList.remove("on"); };
+    b.addEventListener("touchstart", press, {passive:false});
+    b.addEventListener("touchend", release, {passive:false});
+    b.addEventListener("touchcancel", release, {passive:false});
+    b.addEventListener("mousedown", press);
+    b.addEventListener("mouseup", release);
+    b.addEventListener("mouseleave", release);
+    b.addEventListener("contextmenu", e=>{ e.preventDefault(); });
+  });
+}
+bindTouchControls();
 
 /* ---------- arranque ---------- */
 renderHome(); show("home");
