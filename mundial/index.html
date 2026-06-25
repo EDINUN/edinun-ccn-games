@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>⚽ Mundial EDINUN 🏆</title>
+<style>
+  :root{
+    --green1:#0a5e34; --green2:#0c7a44; --pitch:#0b6b3a;
+    --gold:#ffd34e; --gold2:#f4b400; --ink:#06241a;
+    --ok:#2fb56b; --bad:#e0473e; --txt:#f4fff8; --muted:#bfe6cf;
+    --panel:#0c241a; --panel2:#103326; --live:#ff3b3b;
+    --tA:#ffd34e; --tB:#ffffff; --tInk:#06241a; /* colores del equipo activo */
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif; color:var(--txt);
+    background:
+      radial-gradient(120% 80% at 50% -10%, #15402c 0%, #07150f 60%, #050d09 100%);
+    min-height:100dvh; overflow-x:hidden;
+  }
+  .wrap{min-height:100dvh; display:flex; flex-direction:column; align-items:center; padding:18px 14px 28px}
+  .hidden{display:none !important}
+  button{font-family:inherit}
+
+  /* ---------- Barra superior ---------- */
+  .topbar{width:100%; max-width:1100px; display:flex; align-items:center; gap:12px; margin-bottom:14px}
+  .topbar img{height:34px; width:auto; filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  .brand{font-weight:900; letter-spacing:1px; font-size:14px; color:var(--muted)}
+  .brand b{color:var(--gold)}
+  .topbar .spacer{flex:1}
+  .pill{background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.12); border-radius:999px;
+    padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; color:var(--txt); display:flex; gap:7px; align-items:center}
+  .pill:active{transform:translateY(1px)}
+  .pill.gold{background:linear-gradient(180deg,var(--gold),var(--gold2)); color:var(--ink); border:none}
+
+  /* ---------- HOME ---------- */
+  .hero{text-align:center; margin:6px 0 20px}
+  .hero .cup{font-size:54px; filter:drop-shadow(0 8px 16px rgba(0,0,0,.5)); animation:float 3s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+  .hero h1{font-size:clamp(30px,7vw,52px); font-weight:900; letter-spacing:1px; line-height:1;
+    background:linear-gradient(180deg,#fff,var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero p{color:var(--muted); margin-top:8px; font-size:15px}
+  .progressbar{max-width:340px; margin:14px auto 0; height:9px; border-radius:999px; background:rgba(0,0,0,.35); overflow:hidden}
+  .progressbar > i{display:block; height:100%; background:linear-gradient(90deg,var(--ok),var(--gold)); width:0; transition:width .5s ease}
+  .progresslbl{font-size:12px; color:var(--muted); margin-top:6px}
+
+  .grid{width:100%; max-width:1100px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px}
+  .team-card{
+    position:relative; cursor:pointer; border-radius:18px; overflow:hidden; min-height:158px;
+    border:1px solid rgba(255,255,255,.14); background:linear-gradient(180deg,var(--panel2),var(--panel));
+    box-shadow:0 16px 36px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+    transition:transform .12s ease, box-shadow .12s ease; padding:18px 18px 16px; display:flex; flex-direction:column;
+  }
+  .team-card:hover{transform:translateY(-4px); box-shadow:0 22px 46px rgba(0,0,0,.5)}
+  .team-card:active{transform:translateY(-1px)}
+  .team-card .bar{position:absolute; left:0; top:0; height:6px; width:100%}
+  .team-card .flag{font-size:40px; line-height:1}
+  .team-card .pais{font-size:22px; font-weight:900; margin-top:6px}
+  .team-card .dept{font-size:13px; color:var(--muted); margin-top:2px; line-height:1.25}
+  .team-card .foot{margin-top:auto; display:flex; align-items:center; gap:8px; padding-top:12px; font-size:12px; font-weight:800}
+  .team-card .seal{margin-left:auto; font-size:12px; color:var(--muted); font-weight:700}
+  .team-card .seal.done{color:var(--gold)}
+  .team-card .goals{background:rgba(0,0,0,.3); border-radius:999px; padding:3px 9px; color:var(--gold)}
+  .team-card .cta{color:var(--muted)}
+
+  .ref-strip{width:100%; max-width:1100px; margin-top:16px; display:flex; align-items:center; gap:14px;
+    background:linear-gradient(90deg,#7a1010,#3a0808); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px 16px; cursor:pointer}
+  .ref-strip:active{transform:translateY(1px)}
+  .ref-strip .ref-emoji{font-size:30px}
+  .ref-strip .t{font-weight:800}
+  .ref-strip .s{font-size:12px; color:#ffd9d9}
+  .ref-strip .go{margin-left:auto; color:#ffd9d9; font-size:13px; font-weight:800}
+
+  /* ---------- REVEAL (transmisión) ---------- */
+  #screen-reveal{width:100%; max-width:1100px}
+  .broadcast-top{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+  .live{display:flex; align-items:center; gap:7px; background:#000; border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:6px 11px; font-weight:900; font-size:12px; letter-spacing:1px}
+  .live .dot{width:9px; height:9px; border-radius:50%; background:var(--live); box-shadow:0 0 0 0 rgba(255,59,59,.6); animation:liveDot 1.2s infinite}
+  @keyframes liveDot{0%{box-shadow:0 0 0 0 rgba(255,59,59,.55)}70%{box-shadow:0 0 0 8px rgba(255,59,59,0)}100%{box-shadow:0 0 0 0 rgba(255,59,59,0)}}
+  .channel{font-weight:900; letter-spacing:1px; color:var(--gold)}
+  .broadcast-top .spacer{flex:1}
+
+  .reveal-body{display:grid; grid-template-columns:minmax(0,0.95fr) minmax(0,1.05fr); gap:24px; align-items:center}
+  @media(max-width:760px){ .reveal-body{grid-template-columns:1fr} }
+
+  .poster-wrap{position:relative; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.55);
+    border:3px solid var(--tA); justify-self:center; width:100%; max-width:420px}
+  .poster-wrap img{display:block; width:100%; height:auto; animation:posterIn .7s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes posterIn{from{opacity:0; transform:scale(.94)}to{opacity:1; transform:none}}
+  .poster-wrap::after{content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);
+    transform:translateX(-130%); animation:shine 1.1s ease .45s 1 both}
+  @keyframes shine{to{transform:translateX(130%)}}
+
+  .lineup-info .lower-third{display:inline-flex; align-items:center; gap:10px; background:linear-gradient(90deg,var(--tA),transparent);
+    border-left:5px solid var(--tA); padding:8px 16px 8px 12px; border-radius:6px; margin-bottom:8px}
+  .lower-third .flag{font-size:30px}
+  .lower-third .pais{font-size:26px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.4)}
+  .lineup-info .dept{font-size:15px; color:var(--muted); margin-bottom:4px}
+  .lineup-info .xi-title{font-size:13px; font-weight:900; letter-spacing:2px; color:var(--gold); margin:14px 0 10px}
+  .xi{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  @media(max-width:420px){ .xi{grid-template-columns:1fr} }
+  .xi li{list-style:none; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,.28);
+    border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:8px 11px; font-size:14px; font-weight:600;
+    opacity:0; transform:translateX(-12px); animation:xiIn .4s ease forwards}
+  @keyframes xiIn{to{opacity:1; transform:none}}
+  .xi li .num{flex:0 0 24px; height:24px; border-radius:6px; display:grid; place-items:center; font-weight:900; font-size:12px;
+    background:var(--tA); color:var(--tInk)}
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+
+  .btn{cursor:pointer; border:none; border-radius:13px; font-weight:800; font-size:16px; padding:14px 20px; color:var(--ink);
+    background:linear-gradient(180deg,var(--gold),var(--gold2)); box-shadow:0 6px 0 #b88600, 0 12px 20px rgba(0,0,0,.32);
+    transition:transform .06s, box-shadow .06s}
+  .btn:active{transform:translateY(4px); box-shadow:0 2px 0 #b88600}
+  .btn.ghost{background:transparent; color:var(--txt); border:1.5px solid rgba(255,255,255,.3); box-shadow:none}
+  .btn.ok{background:linear-gradient(180deg,#46d486,var(--ok)); box-shadow:0 6px 0 #1c7a47, 0 12px 20px rgba(0,0,0,.32); color:#03240f}
+  .btn.ok:active{box-shadow:0 2px 0 #1c7a47}
+  .btn.sealed{filter:grayscale(.3) brightness(.85); cursor:default}
+
+  /* ---------- INTRO overlay (cadena) ---------- */
+  .intro{position:fixed; inset:0; z-index:60; background:radial-gradient(120% 90% at 50% 30%,#0c2b1d,#020806); display:grid; place-items:center; cursor:pointer}
+  .intro .scan{position:absolute; inset:0; background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 2px,transparent 2px 4px); pointer-events:none}
+  .intro .sweep{position:absolute; top:0; bottom:0; width:40%; left:-40%;
+    background:linear-gradient(90deg,transparent,rgba(255,211,78,.18),transparent); animation:sweep 2.2s ease-in-out infinite}
+  @keyframes sweep{0%{left:-40%}100%{left:120%}}
+  .intro-inner{text-align:center; z-index:1; padding:20px}
+  .intro .ch{font-weight:900; letter-spacing:3px; color:var(--gold); font-size:14px}
+  .intro .liveTag{display:inline-flex; gap:7px; align-items:center; margin:14px 0; font-weight:900; letter-spacing:2px; font-size:12px}
+  .intro .liveTag .dot{width:9px;height:9px;border-radius:50%;background:var(--live);animation:liveDot 1.2s infinite}
+  .intro .flag{font-size:64px; margin:4px 0}
+  .intro .pais{font-size:clamp(34px,9vw,68px); font-weight:900; line-height:1;
+    background:linear-gradient(180deg,#fff,var(--tA)); -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:popUp .5s ease both}
+  @keyframes popUp{from{opacity:0; transform:translateY(16px) scale(.96)}to{opacity:1; transform:none}}
+  .intro .dept{color:var(--muted); margin-top:10px; font-size:16px; letter-spacing:.5px}
+  .intro .skip{position:absolute; bottom:22px; left:0; right:0; text-align:center; color:rgba(255,255,255,.5); font-size:12px}
+
+  /* ---------- PENALES ---------- */
+  #screen-pen{width:100%; max-width:680px; display:flex; flex-direction:column; align-items:center}
+  .pen-hud{width:100%; display:flex; align-items:center; gap:10px; margin-bottom:12px}
+  .pen-hud .pais{font-weight:900; font-size:20px; display:flex; gap:8px; align-items:center}
+  .pen-hud .spacer{flex:1}
+  .pen-hud .chip{background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:7px 13px; font-weight:800; font-size:14px}
+  .pen-hud .chip b{color:var(--gold)}
+  .shots{display:flex; gap:6px; margin-bottom:12px}
+  .shots i{width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.18)}
+  .shots i.goal{background:radial-gradient(circle at 30% 30%,#fff,var(--gold)); box-shadow:0 0 8px var(--gold)}
+  .shots i.miss{background:var(--bad)}
+
+  .arena{position:relative; width:100%; aspect-ratio:16/11; border-radius:16px; overflow:hidden;
+    background:linear-gradient(180deg,#0b3f24 0%,#0c7a44 55%,#0a6a3b 100%);
+    border:1px solid rgba(255,255,255,.12); box-shadow:inset 0 8px 30px rgba(0,0,0,.35)}
+  .arena .grass{position:absolute; inset:0; background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 9%,transparent 9% 18%)}
+  .goal{position:absolute; left:10%; right:10%; top:7%; height:42%;
+    border:7px solid #fff; border-bottom:none; border-radius:8px 8px 0 0;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.10) 0 9px,transparent 9px 18px),
+               repeating-linear-gradient(0deg,rgba(255,255,255,.10) 0 9px,transparent 9px 18px);
+    box-shadow:0 0 0 2px rgba(0,0,0,.15)}
+  .keeper{position:absolute; bottom:-6%; left:50%; width:15%; aspect-ratio:1; transform:translateX(-50%);
+    display:grid; place-items:center; font-size:0; transition:left .35s cubic-bezier(.3,.8,.4,1.2), transform .35s ease; z-index:3}
+  .keeper .body{width:64%; height:88%; border-radius:40% 40% 30% 30%; background:linear-gradient(180deg,#ffe14d,#ffb300);
+    border:2px solid rgba(0,0,0,.25); position:relative}
+  .keeper .glove{position:absolute; top:-10%; width:34%; aspect-ratio:1; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.2)}
+  .keeper .glove.l{left:-22%} .keeper .glove.r{right:-22%}
+  .keeper.dive-0{transform:translateX(-50%) rotate(-32deg)}
+  .keeper.dive-2{transform:translateX(-50%) rotate(32deg)}
+
+  .zones{position:absolute; left:10%; right:10%; top:7%; height:42%; display:flex; z-index:4}
+  .zone{flex:1; cursor:pointer; display:grid; place-items:center; border-right:2px dashed rgba(255,255,255,.18)}
+  .zone:last-child{border-right:none}
+  .zone .ring{width:46px; height:46px; border-radius:50%; border:3px solid rgba(255,255,255,.5); display:grid; place-items:center;
+    color:#fff; font-weight:900; transition:transform .12s, background .12s, border-color .12s; background:rgba(0,0,0,.12)}
+  .zone:hover .ring{transform:scale(1.12); border-color:var(--gold); background:rgba(255,211,78,.2)}
+  .zones.locked .zone{cursor:default}
+  .zones.locked .zone .ring{opacity:.25}
+
+  .ball{position:absolute; left:50%; top:84%; width:8%; aspect-ratio:1; transform:translate(-50%,-50%) scale(1);
+    font-size:0; z-index:2; transition:left .42s cubic-bezier(.4,.1,.5,1), top .42s cubic-bezier(.4,.1,.5,1), transform .42s}
+  .ball::before{content:"⚽"; font-size:clamp(22px,5.5vw,34px); display:block; line-height:1}
+  .spot{position:absolute; left:50%; top:86%; width:10px; height:5px; border-radius:50%; background:rgba(255,255,255,.6); transform:translate(-50%,-50%)}
+
+  .pen-msg{min-height:30px; margin-top:14px; font-size:clamp(18px,4.4vw,24px); font-weight:900; text-align:center; letter-spacing:.5px}
+  .pen-msg.gol{color:var(--gold); animation:pump .4s ease}
+  .pen-msg.save{color:#ff8a8a}
+  @keyframes pump{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .pen-hint{color:var(--muted); font-size:13px; margin-top:6px; text-align:center}
+  .flash{position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:80}
+  .flash.go{animation:flash .45s ease}
+  @keyframes flash{0%{opacity:.0}15%{opacity:.55}100%{opacity:0}}
+
+  /* ---------- MODAL / OVERLAYS ---------- */
+  .overlay{position:fixed; inset:0; z-index:70; background:rgba(2,8,5,.78); display:grid; place-items:center; padding:20px; backdrop-filter:blur(3px)}
+  .modal{width:100%; max-width:440px; background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid rgba(255,255,255,.14);
+    border-radius:20px; padding:26px 22px; text-align:center; box-shadow:0 30px 70px rgba(0,0,0,.6)}
+  .modal h3{font-size:24px; font-weight:900; margin-bottom:6px}
+  .modal .big{font-size:46px; margin-bottom:6px}
+  .modal p{color:var(--muted); margin-bottom:18px; line-height:1.4}
+  .modal .row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+  .ref-photo{max-width:230px; width:70%; border-radius:14px; border:3px solid #ff6b6b; box-shadow:0 18px 40px rgba(0,0,0,.5); margin-bottom:14px}
+
+  /* ---------- TABLA ---------- */
+  .table{width:100%; max-width:520px; border-collapse:collapse; margin:6px 0 16px}
+  .table th,.table td{padding:11px 10px; text-align:left; border-bottom:1px solid rgba(255,255,255,.1)}
+  .table th{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px}
+  .table td.g{text-align:right; font-weight:900; color:var(--gold)}
+  .table .pos{width:34px; font-weight:900}
+  .table tr .fl{font-size:20px; margin-right:8px}
+  .table .nm b{display:block} .table .nm small{color:var(--muted)}
+
+  #confetti{position:fixed; inset:0; z-index:65; pointer-events:none}
+  .footer{margin-top:auto; color:rgba(255,255,255,.4); font-size:11px; letter-spacing:1px; padding-top:22px}
+</style>
+</head>
+<body>
+<canvas id="confetti" class="hidden"></canvas>
+<div class="flash" id="flash"></div>
+
+<div class="wrap">
+  <div class="topbar">
+    <img src="edinun-logo.png" alt="EDINUN" onerror="this.style.display='none'" />
+    <div class="brand"><b>EDINUN</b> SPORTS</div>
+    <div class="spacer"></div>
+    <div class="pill gold" id="btn-tabla">🏆 Tabla</div>
+  </div>
+
+  <!-- ===================== HOME / ESTADIO ===================== -->
+  <section id="screen-home" style="width:100%; display:flex; flex-direction:column; align-items:center">
+    <div class="hero">
+      <div class="cup">🏆</div>
+      <h1>MUNDIAL EDINUN</h1>
+      <p>El torneo de las selecciones de la casa. ¡Que salga tu equipo a la cancha!</p>
+      <div class="progressbar"><i id="prog"></i></div>
+      <div class="progresslbl" id="proglbl">0 de 4 selecciones presentadas</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="ref-strip" id="ref-strip">
+      <div class="ref-emoji">🟨🟥</div>
+      <div>
+        <div class="t">Árbitra oficial · FIFA Referee 2026</div>
+        <div class="s">La que imparte justicia en el Mundial EDINUN</div>
+      </div>
+      <div class="go">Ver ▶</div>
+    </div>
+  </section>
+
+  <!-- ===================== REVEAL ===================== -->
+  <section id="screen-reveal" class="hidden">
+    <div class="broadcast-top">
+      <button class="pill" id="btn-back">← Estadio</button>
+      <div class="spacer"></div>
+      <div class="live"><span class="dot"></span> EN VIVO</div>
+      <div class="channel">EDINUN SPORTS</div>
+    </div>
+    <div class="reveal-body">
+      <div class="poster-wrap" id="poster-wrap"><img id="poster-img" alt="Alineación" /></div>
+      <div class="lineup-info">
+        <div class="lower-third"><span class="flag" id="li-flag">🏳️</span><span class="pais" id="li-pais">País</span></div>
+        <div class="dept" id="li-dept">Departamento</div>
+        <div class="xi-title">▌ XI INICIAL</div>
+        <ul class="xi" id="li-xi"></ul>
+        <div class="actions">
+          <button class="btn" id="btn-pen">⚽ Tanda de penales</button>
+          <button class="btn ok" id="btn-seal">🛂 Sellar pasaporte</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PENALES ===================== -->
+  <section id="screen-pen" class="hidden">
+    <div class="pen-hud">
+      <div class="pais" id="pen-pais"><span id="pen-flag">🏳️</span> <span id="pen-pais-n">País</span></div>
+      <div class="spacer"></div>
+      <div class="chip">Penal <b id="pen-n">1</b>/5</div>
+      <div class="chip">⚽ <b id="pen-goals">0</b></div>
+    </div>
+    <div class="shots" id="shots"></div>
+    <div class="arena">
+      <div class="grass"></div>
+      <div class="goal"></div>
+      <div class="keeper" id="keeper"><div class="glove l"></div><div class="body"></div><div class="glove r"></div></div>
+      <div class="zones" id="zones">
+        <div class="zone" data-z="0"><div class="ring">◀</div></div>
+        <div class="zone" data-z="1"><div class="ring">▲</div></div>
+        <div class="zone" data-z="2"><div class="ring">▶</div></div>
+      </div>
+      <div class="ball" id="ball"></div>
+      <div class="spot"></div>
+    </div>
+    <div class="pen-msg" id="pen-msg">¡Elige dónde patear!</div>
+    <div class="pen-hint">Toca una zona del arco · o usa las teclas ← ↑ →</div>
+    <div class="actions" style="margin-top:16px">
+      <button class="pill" id="pen-back">← Volver</button>
+    </div>
+  </section>
+
+  <div class="footer">EDINUN · Mundial EDINUN ⚽</div>
+</div>
+
+<!-- contenedores dinámicos -->
+<div id="overlay-host"></div>
+
+<script>
+/* ============================================================
+   DATOS — Mundial EDINUN (4 departamentos = 4 selecciones)
+   Los nombres provienen de las láminas; la lámina sigue siendo
+   la fuente visual. Editar aquí si algún nombre se lee distinto.
+   ============================================================ */
+const TEAMS = [
+  { id:"innovacion", dept:"Centro de Innovación Editorial", pais:"Argentina", flag:"🇦🇷",
+    colors:{ a:"#75AADB", b:"#ffffff", ink:"#0a3a6b" }, poster:"equipos/01.jpg",
+    players:["Emily Velásquez","Leo Paucar","Gabriel Pacheco","Nicolás Obregón","Sebastián Ortiz",
+             "Adrián Bonilla","Emily Guerra","Paula Menzalde","Ana Vélez","Jorge Vilchez"] },
+  { id:"contenidos", dept:"Gestión de Contenidos", pais:"Ecuador", flag:"🇪🇨",
+    colors:{ a:"#FFD100", b:"#0072CE", ink:"#7a1f1f" }, poster:"equipos/02.jpg",
+    players:["Edison Lasso","Débora Álvarez","Kathya García","Sara Medina","Estefanía Vinueza",
+             "Francisco Velázquez","Rafael Racines","Andrés Fernández","María José Cisneros"] },
+  { id:"proyectos", dept:"Gestión de Proyectos y Servicios", pais:"Alemania", flag:"🇩🇪",
+    colors:{ a:"#f4c20d", b:"#222222", ink:"#1a1200" }, poster:"equipos/03.jpg",
+    players:["Lizeth Hermosa","Estéfano Proaño","Edison Guaita","Nicole Ortega","Ángela León",
+             "Shadde Ponce","Steve Moposita"] },
+  { id:"diseno", dept:"Diseño Gráfico", pais:"Portugal", flag:"🇵🇹",
+    colors:{ a:"#0a8a3a", b:"#c8102e", ink:"#5a0e1c" }, poster:"equipos/04.jpg",
+    players:["Margarita Silva","Diana Velásquez","Alejandra Ventimilla","María Cristina Suárez",
+             "Carmen Herrera","Karen Salazar","Camila Galarza","José Roldán"] },
+];
+const REF_POSTER = "equipos/05.jpg";
+const STORE_KEY = "mundial_edinun_v1";
+const SHOTS = 5;
+
+/* ---------- estado persistente ---------- */
+let state = load();
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(STORE_KEY)); if(s && s.teams) return s; }catch(e){}
+  const t = {}; TEAMS.forEach(x => t[x.id] = { goals:0, sealed:false, played:false });
+  return { teams:t };
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+function ts(id){ return state.teams[id] || (state.teams[id]={goals:0,sealed:false,played:false}); }
+
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+function show(name){ ["home","reveal","pen"].forEach(s => $("screen-"+s).classList.toggle("hidden", s!==name)); }
+function setTeamVars(t){
+  const r = document.documentElement.style;
+  r.setProperty("--tA", t.colors.a); r.setProperty("--tB", t.colors.b); r.setProperty("--tInk", t.colors.ink);
+}
+function beep(freq, dur, type, vol){
+  try{
+    const A = window._ac || (window._ac = new (window.AudioContext||window.webkitAudioContext)());
+    const o = A.createOscillator(), g = A.createGain();
+    o.type = type||"sine"; o.frequency.value = freq;
+    g.gain.value = vol||0.06; o.connect(g); g.connect(A.destination);
+    o.start(); o.stop(A.currentTime + (dur||0.15));
+    g.gain.exponentialRampToValueAtTime(0.0001, A.currentTime + (dur||0.15));
+  }catch(e){}
+}
+function cheer(){ beep(660,0.1,"triangle",0.07); setTimeout(()=>beep(880,0.12,"triangle",0.07),90); setTimeout(()=>beep(1175,0.18,"triangle",0.07),200); }
+function whistle(){ beep(2100,0.12,"square",0.04); }
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function renderHome(){
+  const grid = $("grid"); grid.innerHTML = "";
+  TEAMS.forEach(t => {
+    const st = ts(t.id);
+    const el = document.createElement("div");
+    el.className = "team-card";
+    el.innerHTML =
+      '<div class="bar" style="background:linear-gradient(90deg,'+t.colors.a+','+t.colors.b+')"></div>'+
+      '<div class="flag">'+t.flag+'</div>'+
+      '<div class="pais">'+t.pais+'</div>'+
+      '<div class="dept">'+t.dept+'</div>'+
+      '<div class="foot">'+
+        '<span class="goals">⚽ '+st.goals+'</span>'+
+        '<span class="cta">'+(st.sealed ? "Ver de nuevo ▶" : "Salir a la cancha ▶")+'</span>'+
+        '<span class="seal '+(st.sealed?"done":"")+'">'+(st.sealed ? "🛂 Sellado" : "")+'</span>'+
+      '</div>';
+    el.onclick = () => openTeam(t.id);
+    grid.appendChild(el);
+  });
+  const done = TEAMS.filter(t => ts(t.id).sealed).length;
+  $("prog").style.width = (done/TEAMS.length*100)+"%";
+  $("proglbl").textContent = done + " de " + TEAMS.length + " selecciones presentadas";
+}
+
+/* ============================================================
+   REVEAL (transmisión)
+   ============================================================ */
+let current = null;
+function openTeam(id){
+  const t = TEAMS.find(x => x.id === id); if(!t) return;
+  current = t; setTeamVars(t);
+  whistle();
+  showIntro(t, () => buildReveal(t));
+}
+
+function showIntro(t, done){
+  const host = $("overlay-host");
+  const div = document.createElement("div");
+  div.className = "intro";
+  div.innerHTML =
+    '<div class="scan"></div><div class="sweep"></div>'+
+    '<div class="intro-inner">'+
+      '<div class="ch">EDINUN SPORTS · COBERTURA ESPECIAL</div>'+
+      '<div class="liveTag"><span class="dot"></span> EN VIVO</div>'+
+      '<div class="flag">'+t.flag+'</div>'+
+      '<div class="pais">'+t.pais+'</div>'+
+      '<div class="dept">'+t.dept+'</div>'+
+    '</div>'+
+    '<div class="skip">Toca para continuar</div>';
+  host.appendChild(div);
+  let closed = false;
+  const close = () => { if(closed) return; closed = true; div.remove(); done(); };
+  div.onclick = close;
+  const tmr = setTimeout(close, 2600);
+  div._cleanup = () => { clearTimeout(tmr); };
+  window._introClose = () => { clearTimeout(tmr); close(); };
+}
+
+function buildReveal(t){
+  show("reveal");
+  $("poster-img").src = t.poster;
+  $("poster-img").onerror = function(){ this.parentElement.innerHTML =
+    '<div style="padding:60px 20px; text-align:center; color:var(--muted)">'+t.flag+'<br>Lámina no encontrada<br><small>'+t.poster+'</small></div>'; };
+  // re-trigger animations
+  const pw = $("poster-wrap"); pw.style.animation = "none"; void pw.offsetWidth; pw.style.animation = "";
+  const img = $("poster-img"); img.style.animation = "none"; void img.offsetWidth; img.style.animation = "posterIn .7s cubic-bezier(.2,.7,.2,1) both";
+  $("li-flag").textContent = t.flag;
+  $("li-pais").textContent = t.pais;
+  $("li-dept").textContent = t.dept;
+  const xi = $("li-xi"); xi.innerHTML = "";
+  t.players.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.style.animationDelay = (0.15 + i*0.06) + "s";
+    li.innerHTML = '<span class="num">'+(i+1)+'</span><span>'+p+'</span>';
+    xi.appendChild(li);
+  });
+  const sealed = ts(t.id).sealed;
+  const sealBtn = $("btn-seal");
+  sealBtn.classList.toggle("sealed", sealed);
+  sealBtn.textContent = sealed ? "✓ Pasaporte sellado" : "🛂 Sellar pasaporte";
+}
+
+/* ============================================================
+   PENALES
+   ============================================================ */
+let pen = null;
+function startPen(){
+  const t = current; if(!t) return;
+  pen = { i:0, goals:0, locked:false, results:[] };
+  setTeamVars(t);
+  show("pen");
+  $("pen-flag").textContent = t.flag;
+  $("pen-pais-n").textContent = t.pais;
+  renderShots();
+  resetBall();
+  $("pen-n").textContent = "1";
+  $("pen-goals").textContent = "0";
+  $("pen-msg").textContent = "¡Elige dónde patear!";
+  $("pen-msg").className = "pen-msg";
+  $("zones").classList.remove("locked");
+}
+function renderShots(){
+  const s = $("shots"); s.innerHTML = "";
+  for(let i=0;i<SHOTS;i++){
+    const el = document.createElement("i");
+    if(pen.results[i] === true) el.className = "goal";
+    else if(pen.results[i] === false) el.className = "miss";
+    s.appendChild(el);
+  }
+}
+function resetBall(){
+  const k = $("keeper"); k.className = "keeper"; k.style.left = "50%";
+  const b = $("ball"); b.style.transition = "none"; b.style.left = "50%"; b.style.top = "84%"; b.style.transform = "translate(-50%,-50%) scale(1)";
+  void b.offsetWidth; b.style.transition = "";
+}
+const ZONE_X = ["26%","50%","74%"];
+const ZONE_TOP = ["20%","16%","20%"];
+function shoot(zone){
+  if(!pen || pen.locked) return;
+  pen.locked = true;
+  $("zones").classList.add("locked");
+  const keeperZone = Math.floor(Math.random()*3);
+  // mueve la pelota
+  const b = $("ball");
+  b.style.left = ZONE_X[zone]; b.style.top = ZONE_TOP[zone]; b.style.transform = "translate(-50%,-50%) scale(.7)";
+  // arquero se lanza
+  const k = $("keeper");
+  k.className = "keeper dive-" + keeperZone;
+  k.style.left = ZONE_X[keeperZone];
+  const scored = zone !== keeperZone;
+  beep(180,0.08,"square",0.05); // patada
+  setTimeout(() => resolveShot(scored), 460);
+}
+function resolveShot(scored){
+  const msg = $("pen-msg");
+  if(scored){
+    pen.goals++; pen.results[pen.i] = true;
+    $("pen-goals").textContent = pen.goals;
+    msg.textContent = pick(["¡GOOOL! ⚽","¡GOLAZO! 🔥","¡Adentro! 🥅","¡Imparable! 💥"]);
+    msg.className = "pen-msg gol";
+    $("flash").className = "flash go";
+    cheer();
+  } else {
+    pen.results[pen.i] = false;
+    msg.textContent = pick(["¡La atajó! 🧤","¡Voló el arquero! 🙌","¡Penal detenido! 🧱"]);
+    msg.className = "pen-msg save";
+    beep(140,0.18,"sawtooth",0.05);
+  }
+  setTimeout(()=>{ $("flash").className = "flash"; }, 460);
+  renderShots();
+  pen.i++;
+  setTimeout(() => {
+    if(pen.i >= SHOTS) finishPen();
+    else {
+      pen.locked = false;
+      $("zones").classList.remove("locked");
+      resetBall();
+      $("pen-n").textContent = (pen.i+1);
+      msg.textContent = "¡Siguiente! Elige zona.";
+      msg.className = "pen-msg";
+    }
+  }, 1250);
+}
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function finishPen(){
+  const t = current;
+  const st = ts(t.id);
+  st.goals += pen.goals;
+  st.played = true;
+  const firstSeal = !st.sealed;
+  st.sealed = true;
+  save();
+  const allDone = TEAMS.every(x => ts(x.id).sealed);
+  openOverlay(
+    '<div class="big">'+(pen.goals>=4?"🏆":pen.goals>=2?"⚽":"🧤")+'</div>'+
+    '<h3>'+t.pais+': '+pen.goals+'/'+SHOTS+' goles</h3>'+
+    '<p>'+goalCopy(pen.goals)+'<br><b style="color:var(--gold)">+'+pen.goals+' al marcador de '+t.dept+'</b></p>'+
+    '<div class="row">'+
+      '<button class="btn ok" id="ov-tabla">🏆 Ver tabla</button>'+
+      '<button class="pill" id="ov-home">← Estadio</button>'+
+    '</div>',
+    () => {
+      $("ov-tabla").onclick = () => { closeOverlay(); openTabla(); };
+      $("ov-home").onclick = () => { closeOverlay(); goHome(); if(allDone) setTimeout(()=>{ if(firstSeal) finale(); }, 150); };
+    }
+  );
+  if(firstSeal && allDone){ /* el finale se dispara al volver */ }
+}
+function goalCopy(g){
+  if(g>=5) return "¡Tanda perfecta! La afición de la oficina enloquece.";
+  if(g>=4) return "¡Tremenda definición desde los doce pasos!";
+  if(g>=2) return "Buena tanda, el equipo suma para el Mundial EDINUN.";
+  if(g>=1) return "¡Abriste el marcador! Cada gol cuenta.";
+  return "Día difícil con los penales… ¡la revancha espera!";
+}
+
+/* ============================================================
+   ÁRBITRA
+   ============================================================ */
+function openRef(){
+  whistle();
+  openOverlay(
+    '<img class="ref-photo" src="'+REF_POSTER+'" alt="Árbitra" onerror="this.style.display=\'none\'"/>'+
+    '<h3>Árbitra oficial 🟨🟥</h3>'+
+    '<p>FIFA Referee 2026 · La autoridad máxima del Mundial EDINUN.<br>El VAR siempre revisa con justicia. ⚖️</p>'+
+    '<div class="row"><button class="btn" id="ov-close">¡Entendido!</button></div>',
+    () => { $("ov-close").onclick = closeOverlay; }
+  );
+}
+
+/* ============================================================
+   TABLA DE POSICIONES
+   ============================================================ */
+function openTabla(){
+  const rows = TEAMS.map(t => ({ t, g: ts(t.id).goals, played: ts(t.id).played }))
+    .sort((a,b) => b.g - a.g);
+  const medal = ["🥇","🥈","🥉"];
+  let html = '<h3>🏆 Tabla de posiciones</h3><p>Goles acumulados en la tanda de penales, piso por piso.</p>'+
+    '<table class="table"><thead><tr><th>#</th><th>Selección</th><th style="text-align:right">Goles</th></tr></thead><tbody>';
+  rows.forEach((r,i) => {
+    html += '<tr><td class="pos">'+(medal[i]||(i+1))+'</td>'+
+      '<td class="nm"><span class="fl">'+r.t.flag+'</span><b style="display:inline">'+r.t.pais+'</b>'+
+      '<small style="display:block; margin-left:28px">'+r.t.dept+'</small></td>'+
+      '<td class="g">'+r.g+'</td></tr>';
+  });
+  html += '</tbody></table>'+
+    '<div class="row">'+
+      '<button class="btn" id="ov-close">Cerrar</button>'+
+      '<button class="pill" id="ov-reset">↺ Reiniciar torneo</button>'+
+    '</div>';
+  openOverlay(html, () => {
+    $("ov-close").onclick = closeOverlay;
+    $("ov-reset").onclick = confirmReset;
+  });
+}
+function confirmReset(){
+  openOverlay(
+    '<div class="big">⚠️</div><h3>¿Reiniciar el torneo?</h3>'+
+    '<p>Se borrarán todos los goles y pasaportes sellados. Esta acción no se puede deshacer.</p>'+
+    '<div class="row">'+
+      '<button class="btn" id="ov-no">No, volver</button>'+
+      '<button class="pill" id="ov-yes" style="border-color:var(--bad); color:#ff9b9b">Sí, reiniciar</button>'+
+    '</div>',
+    () => {
+      $("ov-no").onclick = () => { closeOverlay(); openTabla(); };
+      $("ov-yes").onclick = () => {
+        TEAMS.forEach(t => state.teams[t.id] = { goals:0, sealed:false, played:false });
+        save(); closeOverlay(); renderHome();
+      };
+    }
+  );
+}
+
+/* ============================================================
+   FINALE
+   ============================================================ */
+function finale(){
+  const champ = TEAMS.map(t => ({t, g:ts(t.id).goals})).sort((a,b)=>b.g-a.g)[0];
+  runConfetti();
+  cheer(); setTimeout(cheer, 300);
+  openOverlay(
+    '<div class="big">🏆</div><h3>¡Mundial EDINUN completo!</h3>'+
+    '<p>Recorriste las 4 selecciones de la casa.<br>'+
+    'Líder de goles: <b style="color:var(--gold)">'+champ.t.flag+' '+champ.t.pais+'</b> ('+champ.g+' goles)<br>'+
+    '<small>'+champ.t.dept+'</small></p>'+
+    '<div class="row">'+
+      '<button class="btn ok" id="ov-tabla">🏆 Ver tabla final</button>'+
+      '<button class="pill" id="ov-close">Cerrar</button>'+
+    '</div>',
+    () => {
+      $("ov-tabla").onclick = () => { closeOverlay(); openTabla(); };
+      $("ov-close").onclick = () => { closeOverlay(); stopConfetti(); };
+    }
+  );
+}
+
+/* confeti simple en canvas */
+let confettiRAF = null;
+function runConfetti(){
+  const c = $("confetti"); c.classList.remove("hidden");
+  const ctx = c.getContext("2d");
+  const resize = () => { c.width = innerWidth; c.height = innerHeight; };
+  resize(); window.addEventListener("resize", resize);
+  const cols = ["#ffd34e","#75AADB","#0a8a3a","#c8102e","#ffffff","#FFD100"];
+  const P = Array.from({length:140}, () => ({
+    x: Math.random()*c.width, y: -20 - Math.random()*c.height,
+    s: 6 + Math.random()*7, vy: 2 + Math.random()*3.5, vx: -1.5 + Math.random()*3,
+    rot: Math.random()*6.28, vr: -0.2 + Math.random()*0.4, col: cols[Math.floor(Math.random()*cols.length)]
+  }));
+  let frames = 0;
+  const tick = () => {
+    ctx.clearRect(0,0,c.width,c.height);
+    P.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if(p.y > c.height + 20){ p.y = -20; p.x = Math.random()*c.width; }
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle = p.col;
+      ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore();
+    });
+    frames++;
+    confettiRAF = requestAnimationFrame(tick);
+    if(frames > 360) stopConfetti();
+  };
+  tick();
+}
+function stopConfetti(){
+  if(confettiRAF) cancelAnimationFrame(confettiRAF);
+  confettiRAF = null;
+  const c = $("confetti"); c.classList.add("hidden"); c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
+
+/* ============================================================
+   OVERLAYS genéricos
+   ============================================================ */
+function openOverlay(innerHTML, after){
+  closeOverlay();
+  const host = $("overlay-host");
+  const ov = document.createElement("div");
+  ov.className = "overlay"; ov.id = "active-overlay";
+  ov.innerHTML = '<div class="modal">'+innerHTML+'</div>';
+  host.appendChild(ov);
+  if(after) after();
+}
+function closeOverlay(){ const ov = $("active-overlay"); if(ov) ov.remove(); }
+
+/* ============================================================
+   NAVEGACIÓN + EVENTOS
+   ============================================================ */
+function goHome(){ show("home"); renderHome(); }
+
+$("btn-back").onclick = goHome;
+$("btn-pen").onclick = startPen;
+$("btn-seal").onclick = () => {
+  const st = ts(current.id);
+  const wasSealed = TEAMS.every(x => ts(x.id).sealed);
+  st.sealed = true; save();
+  $("btn-seal").classList.add("sealed"); $("btn-seal").textContent = "✓ Pasaporte sellado";
+  whistle();
+  const allDone = TEAMS.every(x => ts(x.id).sealed);
+  setTimeout(() => { goHome(); if(allDone && !wasSealed) setTimeout(finale, 200); }, 500);
+};
+$("pen-back").onclick = () => { show("reveal"); buildReveal(current); };
+$("btn-tabla").onclick = openTabla;
+$("ref-strip").onclick = openRef;
+
+document.querySelectorAll("#zones .zone").forEach(z => {
+  z.onclick = () => shoot(parseInt(z.dataset.z,10));
+});
+
+document.addEventListener("keydown", e => {
+  // saltar intro
+  if(document.querySelector(".intro") && (e.key === " " || e.key === "Enter")){ e.preventDefault(); if(window._introClose) window._introClose(); return; }
+  // penales con teclado
+  if(!$("screen-pen").classList.contains("hidden")){
+    if(e.key === "ArrowLeft" || e.key === "1") shoot(0);
+    else if(e.key === "ArrowUp" || e.key === "2") shoot(1);
+    else if(e.key === "ArrowRight" || e.key === "3") shoot(2);
+  }
+  if(e.key === "Escape") closeOverlay();
+});
+
+/* ---------- arranque ---------- */
+renderHome();
+show("home");
+</script>
+</body>
+</html>

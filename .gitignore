@@ -13,3 +13,6 @@ juegos/*/.planning/qa-screenshots/
 juegos/*/.planning/qa-results.json
 juegos/*/counts/
 juegos/*/visits.txt
+# Láminas fuente del Mundial (~21 MB c/u); el juego usa mundial/equipos/*.jpg (livianas)
+mundial/Alineaciones-*.png
+mundial/visits.txt
