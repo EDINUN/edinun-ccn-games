@@ -129,7 +129,22 @@ no repetirlos. Aplicado en:
 - **J2** (`initialTrayOrder`): baraja el orden de la bandeja en cada carga, nunca
   ya resuelto **y distinto a las últimas 3 barajadas** (`RECENT_KEY`).
 
+- **J4** (`pickClassify` + `pickPlate`): alimentos del quiz y del plato, evitando recientes.
+- **J5** (`pickIdentify` R1, `shuffledTray` R2, `pickScene` R3): **CADA ronda tiene su
+  propio anti-repeat** (`RK_R1`/`RK_R2`/`RK_R3`).
+
 Reglas: registrar la barajada de la partida en un `useEffect(..., [])` (no escribir
 `localStorage` en pleno render) y volver a barajar también en REINICIAR / "jugar
 otra vez". El `RECENT_KEY` lleva sufijo por juego (p. ej.
 `edinun_ccn_agua_recientes_v1`) para no chocar entre juegos en el mismo navegador.
+
+**Cada ronda/fase con azar necesita SU PROPIO anti-repeat.** En J5 la Ronda 1 (un
+quiz de 1 pregunta) se construyó SIN anti-repeat y repetía al recargar aunque las
+otras rondas sí lo tenían. No basta con que "el juego tenga RECENT_KEY": revisar
+ronda por ronda. Juegos de **banco** (J1/J3/J4/J5-R1) varían el contenido; juegos de
+**puzzle único** (J2, J5-R2 = ordenar una secuencia fija) varían el **barajado**
+inicial — ambos cuentan como "no repetir".
+
+**Verificar de verdad (no asumir):** reload-test con Playwright — cargar el juego ~4
+veces y confirmar que el ejercicio cambia (script `pw-audit.js` en el scratchpad).
+Hecho para J1-J5: todos varían.
