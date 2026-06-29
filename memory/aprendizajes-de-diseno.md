@@ -77,3 +77,56 @@ juegos publicados. Para un juego nuevo con ese formato, **clonar del último jue
 terminado** (hoy `JUEGO-2-la-semilla`), que ya trae los arreglos 6-8 y el elenco
 en orden Luna · Bruno · Tomi · Mía sin `drop-shadow`. Así no se re-corrige lo ya
 corregido. Luego se reemplaza solo la mecánica en `game-screens.jsx`.
+
+## 10. El indicador de RONDA va como en JUEGO-1: etiqueta + dots centrados arriba
+
+El progreso de rondas se muestra con el patrón de `JUEGO-1`: una etiqueta
+`<span className="ed-label">Ronda</span>` seguida de los **dots**, todo en un bloque
+**absoluto centrado en la parte superior** del lienzo, **sin caja/píldora**:
+
+```jsx
+<div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 8 }}>
+  <span className="ed-label" style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Ronda</span>
+  {Array.from({ length: N }).map((_, i) => {
+    const done = i < log.length;
+    return <div key={i} style={{ width: 11, height: 11, borderRadius: "50%",
+      background: done ? "#fce9a8" : (i === round ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"),
+      boxShadow: done ? "0 0 8px #fce9a8" : "none" }} />;
+  })}
+</div>
+```
+
+El HUD superior queda entonces con **logo a la izquierda** y **⏱ tiempo + ⭐
+estrellas a la derecha** (sin meter "RONDA" ahí). NO usar una píldora con caja
+(`background: rgba(0,0,0,0.35)` + borde dorado + "RONDA" en mayúsculas dentro del
+HUD): la autora lo rechazó en J3 y pidió respetar el de J1. Dot completado = dorado
+con glow; dot actual = blanco translúcido; pendiente = gris tenue. (Si la mecánica
+marca aciertos/fallos por ronda, el dot puede ir rojo al fallar como en J1; en
+juegos donde toda ronda lograda es éxito, todos los completados van dorados.)
+
+## 11. El enunciado dice la META, no un título genérico de la mecánica
+
+El texto grande y principal de la zona central es **lo que el niño debe hacer en
+ESTA ronda** (la meta concreta), no un título genérico de la mecánica. En J3 la
+autora quitó "Calienta y enfría el agua" (título genérico) y dejó solo
+**"Convierte el agua en 🧊 Sólido"** (meta clara, con el estado destacado en
+dorado, cambiando por ronda). El "cómo" (la mecánica) ya lo comunican el bocadillo
+del guía y los botones; el enunciado es el "qué lograr".
+
+## 12. El orden/selección se baraja en cada carga (anti-repetición)
+
+Cada partida debe salir **distinta a cada niño / cada recarga**: barajar el orden
+y/o la selección al montar la pantalla, evitando lo recién visto. Patrón estándar
+(de `JUEGO-1`): un **banco** de ítems + `shuffle` (Fisher-Yates con `Math.random`)
++ una memoria `RECENT_KEY` en `localStorage` que recuerda los últimos vistos para
+no repetirlos. Aplicado en:
+- **J1** (`pickRounds`): elige 4 preguntas de un banco de 12, evitando recientes.
+- **J3** (`pickRounds` sobre `ROUND_BANK`): elige 3 transiciones de un banco de 4,
+  barajadas, evitando recientes.
+- **J2** (`initialTrayOrder`): baraja el orden de la bandeja en cada carga, nunca
+  ya resuelto **y distinto a las últimas 3 barajadas** (`RECENT_KEY`).
+
+Reglas: registrar la barajada de la partida en un `useEffect(..., [])` (no escribir
+`localStorage` en pleno render) y volver a barajar también en REINICIAR / "jugar
+otra vez". El `RECENT_KEY` lleva sufijo por juego (p. ej.
+`edinun_ccn_agua_recientes_v1`) para no chocar entre juegos en el mismo navegador.

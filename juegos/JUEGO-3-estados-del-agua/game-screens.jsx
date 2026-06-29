@@ -24,39 +24,87 @@ const STATES = [
   { key: "gaseoso", label: "Gaseoso", corto: "vapor", emoji: "☁️", color: "#c9cdd6" },
 ];
 
-// Rondas: { start, goal } por índice de estado. Pensadas de fácil a un pasito más.
-const ROUNDS = [
-  { start: 1, goal: 0 }, // agua → hielo (enfriar 1)
-  { start: 1, goal: 2 }, // agua → vapor (calentar 1)
-  { start: 0, goal: 2 }, // hielo → vapor (calentar 2)
+// Banco de transiciones de UN paso (estados vecinos). UNA decisión por ronda; la
+// acción correcta se deduce: si la meta es más caliente (goal > start) → CALENTAR;
+// si es más fría → ENFRIAR. Cada partida elige N al azar y barajadas.
+const ROUND_BANK = [
+  { start: 1, goal: 0 }, // 💧 agua  → 🧊 hielo  · ENFRIAR (se congela)
+  { start: 0, goal: 1 }, // 🧊 hielo → 💧 agua   · CALENTAR (se derrite)
+  { start: 1, goal: 2 }, // 💧 agua  → ☁️ vapor  · CALENTAR (hierve)
+  { start: 2, goal: 1 }, // ☁️ vapor → 💧 agua   · ENFRIAR (se enfría)
 ];
-const N = ROUNDS.length;
+const N = 3; // rondas por partida
+
+// Acción correcta para una ronda ("calentar" sube de estado, "enfriar" baja).
+function correctActionFor(r) {
+  return r.goal > r.start ? "calentar" : "enfriar";
+}
+function actionLabel(a) {
+  return a === "calentar" ? "Calentar ☀️" : "Enfriar ❄️";
+}
+
+// Anti-repetición entre cargas/niños (mismo navegador): recuerda las últimas
+// transiciones vistas y las evita al armar la próxima partida → no sale igual.
+const RECENT_KEY = "edinun_ccn_agua_recientes_v1";
+function getRecent() {
+  try { const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+function pushRecent(ids) {
+  const prev = getRecent().filter((id) => ids.indexOf(id) === -1);
+  const next = ids.concat(prev).slice(0, ROUND_BANK.length - 1);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) {}
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+// Elige n índices del banco: primero los NO vistos recientemente (barajados),
+// completando con los vistos si hace falta. Garantiza variación al recargar.
+function pickRounds(n) {
+  const recent = new Set(getRecent());
+  const all = ROUND_BANK.map((_, i) => i);
+  const fresh = shuffle(all.filter((i) => !recent.has(i)));
+  const stale = shuffle(all.filter((i) => recent.has(i)));
+  return fresh.concat(stale).slice(0, n);
+}
 
 // ─────────────────────────────────────────────────────────────
 // Vaso de agua que cambia de estado (todo CSS + emoji, sin imágenes).
 // ─────────────────────────────────────────────────────────────
 function WaterView({ state }) {
   const s = STATES[state];
-  const fillH = state === 0 ? "90%" : state === 1 ? "68%" : "30%";
+  const gas = state === 2;
+  const fillH = state === 0 ? "90%" : state === 1 ? "66%" : "12%";
   const fillBg = state === 0
     ? "linear-gradient(180deg,#eaf6ff,#a9d4f5)"
     : state === 1
     ? "linear-gradient(180deg,#8fd0ff,#3a86d6)"
-    : "linear-gradient(180deg,#cdecff,#8fcdf0)";
+    : "linear-gradient(180deg,#bfe6ff,#9bd3ef)";
   return (
-    <div style={{ position: "relative", width: 150, height: 168, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      {/* Vapor saliendo (solo gaseoso) */}
-      {state === 2 && (
-        <div style={{ position: "absolute", top: -4, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 4 }}>
-          <span className="ed-float-soft" style={{ fontSize: 30 }}>☁️</span>
-          <span className="ed-float-soft" style={{ fontSize: 22, marginTop: 6 }}>💨</span>
+    <div style={{ position: "relative", width: 160, height: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      {/* Vapor escapando del vaso (solo gaseoso) */}
+      {gas && (
+        <div style={{ position: "absolute", top: -10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 8 }}>
+          <span className="ed-float-soft" style={{ fontSize: 22 }}>💨</span>
+          <span className="ed-float-soft" style={{ fontSize: 18, marginTop: 4 }}>💨</span>
         </div>
       )}
       {/* Vaso */}
-      <div style={{ position: "relative", width: 112, height: 124, borderRadius: "12px 12px 24px 24px", border: "5px solid rgba(255,255,255,0.92)", borderTop: "none", overflow: "hidden", background: "rgba(255,255,255,0.06)", boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 10px 22px rgba(0,0,0,0.35)" }}>
+      <div style={{ position: "relative", width: 128, height: 142, borderRadius: "12px 12px 26px 26px", border: "5px solid rgba(255,255,255,0.92)", borderTop: "none", overflow: "hidden", background: "rgba(255,255,255,0.06)", boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 10px 22px rgba(0,0,0,0.35)" }}>
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fillH, background: fillBg, transition: "height 0.45s ease, background 0.45s ease", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: state === 0 ? "8px 8px 0 0" : 0 }}>
-          <span style={{ fontSize: 46, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.25))" }}>{s.emoji}</span>
+          {!gas && <span style={{ fontSize: 52, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.25))" }}>{s.emoji}</span>}
         </div>
+        {/* En gaseoso, el agua se volvió vapor: una nube llena el vaso */}
+        {gas && (
+          <div style={{ position: "absolute", left: 0, right: 0, top: "20%", display: "flex", justifyContent: "center" }}>
+            <span className="ed-float-soft" style={{ fontSize: 54, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.25))" }}>☁️</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -65,28 +113,33 @@ function WaterView({ state }) {
 function GameScreen({ app, setApp, go }) {
   const char = CHARACTERS.find((c) => c.id === app.character) || CHARACTERS[0];
 
+  const [rounds, setRounds] = useStateG(() => pickRounds(N)); // índices al ROUND_BANK
   const [round, setRound] = useStateG(0);
-  const [cur, setCur] = useStateG(ROUNDS[0].start);
+  const [cur, setCur] = useStateG(() => ROUND_BANK[rounds[0]].start); // estado en el vaso
+  const [answered, setAnswered] = useStateG(false);    // ya eligió en esta ronda
+  const [picked, setPicked] = useStateG(null);         // "calentar" | "enfriar"
   const [stars, setStars] = useStateG(0);
   const [elapsed, setElapsed] = useStateG(0);
-  const [feedback, setFeedback] = useStateG(null);     // "ok" overlay al cumplir
+  const [feedback, setFeedback] = useStateG(null);     // "ok" | "err" overlay
   const [feedbackMsg, setFeedbackMsg] = useStateG("");
-  const [locked, setLocked] = useStateG(false);        // durante la transición de ronda
-  const [bump, setBump] = useStateG(0);                // animación cuando no puede más
   const [log, setLog] = useStateG([]);
   const [confirmingExit, setConfirmingExit] = useStateG(false);
   const [confirmingRestart, setConfirmingRestart] = useStateG(false);
 
   const started = useRefG(Date.now());
   const firstTap = useRefG(false);
-  const wrongInRound = useRefG(false);
 
   useEffectG(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - started.current) / 1000)), 500);
     return () => clearInterval(id);
   }, []);
 
-  const goal = ROUNDS[round].goal;
+  // Recuerda las transiciones de esta partida → la próxima carga sale distinta.
+  useEffectG(() => { pushRecent(rounds); }, []);
+
+  const rd = ROUND_BANK[rounds[round]];
+  const goal = rd.goal;
+  const correctAction = correctActionFor(rd);
 
   function formatTime(s) {
     const m = Math.floor(s / 60), ss = s % 60;
@@ -95,43 +148,52 @@ function GameScreen({ app, setApp, go }) {
 
   function startRound(r) {
     setRound(r);
-    setCur(ROUNDS[r].start);
-    setLocked(false);
-    wrongInRound.current = false;
+    setCur(ROUND_BANK[rounds[r]].start);
+    setAnswered(false);
+    setPicked(null);
   }
 
-  function onAction(dir) {
-    if (locked) return;
+  // UNA decisión por ronda: tocar CALENTAR o ENFRIAR. Acierto → el agua se
+  // transforma + ⭐. Fallo → se revela la acción correcta y se pasa a la
+  // siguiente ronda (NO baja el progreso ya ganado).
+  function onAnswer(action) {
+    if (answered) return;
     if (!firstTap.current) {
       firstTap.current = true;
       if (typeof markFirstAttempt === "function") markFirstAttempt();
     }
-    const next = Math.max(0, Math.min(STATES.length - 1, cur + dir));
-    if (next === cur) { setBump((b) => b + 1); return; } // ya está al tope
-    if (Math.abs(next - goal) > Math.abs(cur - goal)) wrongInRound.current = true; // se alejó
-    setCur(next);
-    if (next === goal) succeed(next);
-  }
+    const isCorrect = action === correctAction;
+    setPicked(action);
+    setAnswered(true);           // revelado inmediato: aros en botones + meta en verde
+    if (isCorrect) setCur(goal); // el agua se transforma a la meta
 
-  function succeed(reached) {
-    setLocked(true);
-    const perfect = !wrongInRound.current;
-    const newStars = stars + 1;
-    setStars(newStars);
-    setFeedback("ok");
-    setFeedbackMsg(perfect ? "¡Perfecto! ⭐" : "¡Lo lograste! ⭐");
+    const newStars = stars + (isCorrect ? 1 : 0);
+    if (isCorrect) {
+      setStars(newStars);
+      setApp((s) => ({ ...s, stars: (s.stars || 0) + 1 }));
+    }
+
     const entry = {
       idx: round + 1,
       emoji: STATES[goal].emoji,
       a: `Ronda ${round + 1}`,
-      userAnswer: `${STATES[reached].emoji} ${STATES[reached].label}`,
       correctAnswer: `${STATES[goal].emoji} ${STATES[goal].label}`,
-      isCorrect: true,
-      perfect,
+      correctActionLabel: actionLabel(correctAction),
+      userActionLabel: actionLabel(action),
+      isCorrect,
     };
     const newLog = [...log, entry];
     setLog(newLog);
-    setApp((s) => ({ ...s, stars: (s.stars || 0) + 1 }));
+
+    // Al fallar, deja ver el revelado (verde/rojo) ANTES de mostrar el "¡UPS!".
+    const overlayDelay = isCorrect ? 350 : 1000;
+    const overlayHold = 1400;
+    setTimeout(() => {
+      setFeedback(isCorrect ? "ok" : "err");
+      setFeedbackMsg(isCorrect
+        ? "¡Muy bien! ⭐"
+        : `Para hacer ${STATES[goal].emoji} ${STATES[goal].label} hay que ${actionLabel(correctAction).toUpperCase()}`);
+    }, overlayDelay);
 
     const isLast = round + 1 >= N;
     setTimeout(() => {
@@ -139,12 +201,13 @@ function GameScreen({ app, setApp, go }) {
       setFeedbackMsg("");
       if (isLast) {
         if (typeof incrementGamesCompleted === "function") incrementGamesCompleted();
+        const solved = newLog.filter((e) => e.isCorrect).length;
         setApp((s) => ({
           ...s,
           stars: newStars,
           lastResult: {
             category: CAT_LABEL,
-            solved: newLog.length,
+            solved,
             total: N,
             time: Math.floor((Date.now() - started.current) / 1000),
             starsEarned: newStars,
@@ -155,33 +218,46 @@ function GameScreen({ app, setApp, go }) {
       } else {
         startRound(round + 1);
       }
-    }, 1500);
+    }, overlayDelay + overlayHold);
   }
 
   function confirmRestart() {
     setConfirmingRestart(false);
+    const next = pickRounds(N);   // baraja de nuevo (distinto a lo recién jugado)
+    pushRecent(next);
+    setRounds(next);
     setStars(0); setLog([]); setFeedback(null); setFeedbackMsg("");
     firstTap.current = false;
     started.current = Date.now();
-    startRound(0);
+    setRound(0);
+    setCur(ROUND_BANK[next[0]].start);
+    setAnswered(false);
+    setPicked(null);
   }
 
-  // Bocadillo ESTABLE (no cambia en cada toque); solo celebra al cumplir.
-  const bocadillo = feedback === "ok"
-    ? "¡Muy bien, lo lograste!"
-    : "Usa el Sol y el hielo para cambiar el agua.";
+  // Bocadillo: pregunta estable; al responder, celebra o invita a mirar.
+  const bocadillo = !answered
+    ? "¿Le damos calor o frío?"
+    : (picked === correctAction ? "¡Muy bien!" : "¡Casi! Mira la respuesta.");
+
+  // Aro de revelado en los botones: verde = correcto, rojo = elegido mal.
+  const btnBaseShadow = "0 8px 18px rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.12)";
+  function revealRing(action) {
+    if (!answered) return btnBaseShadow;
+    if (action === correctAction) return "0 0 0 4px #2ecc8f, " + btnBaseShadow;
+    if (action === picked) return "0 0 0 4px #ff6b6b, " + btnBaseShadow;
+    return btnBaseShadow;
+  }
+  // Atenúa el botón que no es ni la correcta ni la que tocó el niño (al revelar).
+  function dimBtn(action) {
+    return answered && action !== correctAction && action !== picked;
+  }
 
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-      {/* ── HUD: logo · RONDA dots · tiempo + estrellas ── */}
+      {/* ── HUD: logo izq, tiempo + estrellas der ── */}
       <div style={{ position: "absolute", top: 10, left: 16, right: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <EdinunLogoMini size={56} />
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "6px 14px", border: "1px solid rgba(242,194,96,0.4)" }}>
-          <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 12, letterSpacing: "0.12em", color: "#fce9a8" }}>RONDA</span>
-          {Array.from({ length: N }).map((_, i) => (
-            <span key={i} style={{ width: 11, height: 11, borderRadius: "50%", background: i < log.length ? "#fce9a8" : i === round ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)", boxShadow: i < log.length ? "0 0 8px #fce9a8" : "none" }} />
-          ))}
-        </div>
+        <EdinunLogoMini size={60} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.35)", borderRadius: 999, padding: "6px 12px", border: "1px solid rgba(242,194,96,0.4)", fontFamily: "var(--ed-font-mono)", fontSize: 13, color: "#fce9a8" }}>
             ⏱ {formatTime(elapsed)}
@@ -190,6 +266,21 @@ function GameScreen({ app, setApp, go }) {
             ⭐ {stars}
           </div>
         </div>
+      </div>
+
+      {/* ── RONDA con dots (igual que JUEGO-1: centrado arriba, sin caja) ── */}
+      <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="ed-label" style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Ronda</span>
+        {Array.from({ length: N }).map((_, i) => {
+          const done = i < log.length;
+          return (
+            <div key={i} style={{
+              width: 11, height: 11, borderRadius: "50%",
+              background: done ? "#fce9a8" : (i === round ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"),
+              boxShadow: done ? "0 0 8px #fce9a8" : "none",
+            }} />
+          );
+        })}
       </div>
 
       {/* ── Personaje guía + bocadillo (izquierda) ── */}
@@ -215,57 +306,59 @@ function GameScreen({ app, setApp, go }) {
       </div>
 
       {/* ── Zona central: título + barra de estados + vaso + botones (centrada) ── */}
-      <div style={{ position: "absolute", top: 56, bottom: 14, left: 183, right: 183, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
-        {/* Título + misión de la ronda */}
-        <div style={{ textAlign: "center", pointerEvents: "none" }}>
-          <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 22, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", lineHeight: 1.1 }}>
-            Calienta y enfría el agua
-          </div>
-          <div style={{ marginTop: 4, fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 15, color: "#fff" }}>
-            🎯 Conviértela en <span style={{ color: "#fce9a8" }}>{STATES[goal].emoji} {STATES[goal].label}</span>
-          </div>
+      <div style={{ position: "absolute", top: 30, bottom: 14, left: 183, right: 183, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
+        {/* Enunciado: a qué estado debe llevar el agua (texto principal y claro) */}
+        <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 23, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 470 }}>
+          Convierte el {STATES[rd.start].emoji} {STATES[rd.start].corto} en{" "}
+          <span style={{ color: "#fce9a8" }}>{STATES[goal].emoji} {STATES[goal].label}</span>
         </div>
 
-        {/* Barra de estados: el actual resaltado */}
+        {/* Barra de estados: actual en dorado, meta en verde (punteada → sólida al revelar) */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {STATES.map((s, i) => (
-            <React.Fragment key={s.key}>
-              {i > 0 && <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 20 }}>→</span>}
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 12px", borderRadius: 14, minWidth: 78,
-                background: i === cur ? "rgba(242,194,96,0.22)" : i === goal ? "rgba(46,204,143,0.14)" : "rgba(0,0,0,0.18)",
-                border: i === cur ? "3px solid #f2c260" : i === goal ? "3px dashed rgba(46,204,143,0.8)" : "3px solid rgba(255,255,255,0.12)",
-                transition: "all 0.25s ease",
-              }}>
-                <span style={{ fontSize: 28, lineHeight: 1 }}>{s.emoji}</span>
-                <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 12, color: i === cur ? "#fce9a8" : "rgba(255,255,255,0.75)" }}>{s.label}</span>
-              </div>
-            </React.Fragment>
-          ))}
+          {STATES.map((s, i) => {
+            const isCur = i === cur;
+            const isGoal = i === goal;
+            const reached = answered && isGoal;
+            const bg = reached ? "rgba(46,204,143,0.22)" : isCur ? "rgba(242,194,96,0.22)" : isGoal ? "rgba(46,204,143,0.14)" : "rgba(0,0,0,0.18)";
+            const bd = reached ? "3px solid #2ecc8f" : isCur ? "3px solid #f2c260" : isGoal ? "3px dashed rgba(46,204,143,0.8)" : "3px solid rgba(255,255,255,0.12)";
+            const lbl = reached ? "#9ff0c8" : isCur ? "#fce9a8" : "rgba(255,255,255,0.75)";
+            return (
+              <React.Fragment key={s.key}>
+                {i > 0 && <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 20 }}>→</span>}
+                <div style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 12px", borderRadius: 14, minWidth: 78,
+                  background: bg, border: bd, transition: "all 0.25s ease",
+                }}>
+                  <span style={{ fontSize: 28, lineHeight: 1 }}>{s.emoji}</span>
+                  <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 12, color: lbl }}>{s.label}</span>
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
 
-        {/* Vaso de agua */}
-        <div key={bump} style={{ animation: "ed-pop-in 0.25s" }}>
+        {/* Vaso de agua (hace pop al cambiar de estado) */}
+        <div key={`${round}-${cur}`} style={{ animation: "ed-pop-in 0.25s" }}>
           <WaterView state={cur} />
         </div>
 
-        {/* Botones de acción */}
+        {/* Botones: ENFRIAR (frío, izq) · CALENTAR (calor, der) — siguen la barra 🧊→💧→☁️ */}
         <div style={{ display: "flex", gap: 16 }}>
-          <button onClick={() => onAction(+1)} disabled={locked} title="Calentar con el Sol"
-            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #e8902f", cursor: locked ? "default" : "pointer",
-              background: "linear-gradient(180deg,#ffd27a,#f2992f)", color: "#5a2e00",
-              fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 8px 18px rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.12)", opacity: locked ? 0.7 : 1 }}>
-            <span style={{ fontSize: 26 }}>☀️</span>CALENTAR
-          </button>
-          <button onClick={() => onAction(-1)} disabled={locked} title="Enfriar con el hielo"
-            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #4f9fd6", cursor: locked ? "default" : "pointer",
+          <button onClick={() => onAnswer("enfriar")} disabled={answered} title="Enfriar con el hielo"
+            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #4f9fd6", cursor: answered ? "default" : "pointer",
               background: "linear-gradient(180deg,#bfe6ff,#7cc2f0)", color: "#0a3a5a",
               fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 8px 18px rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.12)", opacity: locked ? 0.7 : 1 }}>
+              boxShadow: revealRing("enfriar"), transition: "all 0.2s ease", opacity: dimBtn("enfriar") ? 0.45 : 1 }}>
             <span style={{ fontSize: 26 }}>❄️</span>ENFRIAR
+          </button>
+          <button onClick={() => onAnswer("calentar")} disabled={answered} title="Calentar con el Sol"
+            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #e8902f", cursor: answered ? "default" : "pointer",
+              background: "linear-gradient(180deg,#ffd27a,#f2992f)", color: "#5a2e00",
+              fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              boxShadow: revealRing("calentar"), transition: "all 0.2s ease", opacity: dimBtn("calentar") ? 0.45 : 1 }}>
+            <span style={{ fontSize: 26 }}>☀️</span>CALENTAR
           </button>
         </div>
       </div>
@@ -290,10 +383,10 @@ function GameScreen({ app, setApp, go }) {
           }}>
             <div style={{
               fontFamily: "'Fredoka','Baloo 2',system-ui,sans-serif", fontWeight: 700,
-              fontSize: "clamp(56px, 11vmin, 120px)", color: "#2ecc8f",
+              fontSize: "clamp(56px, 11vmin, 120px)", color: feedback === "ok" ? "#2ecc8f" : "#ff6b6b",
               textShadow: "0 4px 0 rgba(0,0,0,0.45), 0 0 60px currentColor",
             }}>
-              ¡EXCELENTE!
+              {feedback === "ok" ? "¡EXCELENTE!" : "¡UPS!"}
             </div>
             {feedbackMsg && (
               <div style={{
@@ -402,7 +495,8 @@ function PrintableReport({ studentName, res, dateStr, mm, ss, attemptedCount, ac
               <th style={printStyles.th}>#</th>
               <th style={printStyles.th}>Ronda</th>
               <th style={{ ...printStyles.th, ...printStyles.thR }}>Meta</th>
-              <th style={{ ...printStyles.th, ...printStyles.thC }}>Estado</th>
+              <th style={{ ...printStyles.th, ...printStyles.thR }}>Acción correcta</th>
+              <th style={{ ...printStyles.th, ...printStyles.thC }}>Resultado</th>
             </tr>
           </thead>
           <tbody>
@@ -411,10 +505,11 @@ function PrintableReport({ studentName, res, dateStr, mm, ss, attemptedCount, ac
                 <td style={{ ...printStyles.td, ...printStyles.tdNum }}>{e.idx}</td>
                 <td style={{ ...printStyles.td, fontWeight: 700 }}>{e.emoji} {e.a}</td>
                 <td style={{ ...printStyles.td, textAlign: "right" }}>{e.correctAnswer}</td>
-                <td style={{ ...printStyles.td, ...printStyles.tdOk }}>{e.perfect ? "A la primera" : "Lograda"}</td>
+                <td style={{ ...printStyles.td, textAlign: "right" }}>{e.correctActionLabel}</td>
+                <td style={{ ...printStyles.td, ...(e.isCorrect ? printStyles.tdOk : printStyles.tdErr) }}>{e.isCorrect ? "Correcta" : "Incorrecta"}</td>
               </tr>
             ))}
-            {log.length === 0 && (<tr><td colSpan={4} style={{ padding: 24, textAlign: "center", color: "#888", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
+            {log.length === 0 && (<tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#888", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
           </tbody>
         </table>
         <div style={printStyles.summary}>
@@ -497,7 +592,8 @@ function ResultsScreen({ app, setApp, go }) {
                   <th style={{ textAlign: "left", padding: "6px 8px", width: 30 }}>#</th>
                   <th style={{ textAlign: "left", padding: "6px 8px" }}>Ronda</th>
                   <th style={{ textAlign: "right", padding: "6px 8px" }}>Meta</th>
-                  <th style={{ textAlign: "center", padding: "6px 8px" }}>Estado</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Acción</th>
+                  <th style={{ textAlign: "center", padding: "6px 8px" }}>Logro</th>
                 </tr>
               </thead>
               <tbody>
@@ -506,10 +602,11 @@ function ResultsScreen({ app, setApp, go }) {
                     <td style={{ padding: "7px 8px", color: "var(--ed-ink-soft)" }}>{e.idx}</td>
                     <td style={{ padding: "7px 8px", fontWeight: 600 }}>{e.emoji} {e.a}</td>
                     <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.correctAnswer}</td>
-                    <td style={{ padding: "7px 8px", textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, color: "#2ecc8f" }}>{e.perfect ? "✓✓" : "✓"}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.correctActionLabel}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, color: e.isCorrect ? "#2ecc8f" : "#ff6b6b" }}>{e.isCorrect ? "✓" : "✗"}</td>
                   </tr>
                 ))}
-                {(res.log || []).length === 0 && (<tr><td colSpan={4} style={{ padding: "16px 8px", textAlign: "center", color: "var(--ed-ink-soft)", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
+                {(res.log || []).length === 0 && (<tr><td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "var(--ed-ink-soft)", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
               </tbody>
             </table>
           </div>

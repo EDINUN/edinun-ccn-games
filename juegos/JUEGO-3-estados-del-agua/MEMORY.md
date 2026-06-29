@@ -45,3 +45,33 @@ Bitácora de decisiones de diseño, bugs y resoluciones, en orden cronológico
 - Registrada la audiencia (6 años) en `memory/audiencia_por_juego.md`.
 - Docs del juego (CLAUDE.md, MEMORY.md) reescritos desde el contenido heredado de
   JUEGO-2.
+
+## 2026-06-29 — Rediseño a "decisión única" + pulido tras feedback
+
+Sesión de peros del usuario sobre el JUEGO-3 ya construido. Cambios:
+
+- **Centrado y reparto vertical:** la zona central quedaba corrida y con una banda
+  muerta arriba. Se centró en el eje X (`left:183/right:183`) y se subió la columna
+  (`top:30`) con `space-evenly` → huecos iguales de arriba a abajo (≈39px).
+- **RONDA como JUEGO-1:** se cambió la píldora con caja por la etiqueta "Ronda" +
+  dots centrados arriba; HUD con logo izq y ⏱+⭐ der (aprendizaje base §10).
+- **Enunciado = la meta** (no el título genérico): se quitó "Calienta y enfría el
+  agua" y el texto grande pasó a ser "Convierte el {actual} en {meta}" (§11). Luego
+  el enunciado pasó a **nombrar el estado actual** (corto: hielo/agua/vapor) porque
+  "convierte el agua" confundía cuando el vaso mostraba vapor/hielo.
+- **Mecánica → decisión única (quiz, como JUEGO-1).** El usuario pidió que al elegir
+  mal salga el error y se avance. Se reemplazó el "deslizar paso a paso" por: cada
+  ronda una sola decisión (ENFRIAR/CALENTAR), acierto transforma + ⭐, fallo revela
+  (verde/rojo) y avanza. `ROUND_BANK` de 4 transiciones de un paso; acción correcta
+  deducida (`correctActionFor`). Reporte con ✓/✗ + acción correcta.
+- **Botones ENFRIAR (izq) · CALENTAR (der)** para seguir el orden de la barra
+  (🧊 frío ← → ☁️ calor).
+- **Barajado anti-repetición** (`pickRounds` + `RECENT_KEY`): 3 de 4 rondas, distinto
+  en cada carga (aprendizaje base §12). Lo mismo se aplicó a JUEGO-2 (bandeja).
+- **Vaso de vapor rediseñado:** antes una nube en un charquito (confuso); ahora vaso
+  casi vacío con una nube ☁️ flotando dentro + wisps 💨 saliendo.
+- **Textos del home:** label del tema = "El Sol, la Luna y la vida en la Tierra"
+  (TEMA 2); subtítulo = "Estados del agua 💧". (Reporte/categoría siguen "Estados
+  del agua".)
+- QA con Chrome headless: ronda forzada vapor→líquido, los 3 estados del vaso y el
+  home. Bundle OK (ambos HTML idénticos).

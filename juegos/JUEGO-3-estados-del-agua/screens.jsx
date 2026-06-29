@@ -247,7 +247,7 @@ function HomeScreen({ app, setApp, go }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 520 }}>
           <div>
             <div className="ed-label" style={{ color: "#4fd8ff", marginBottom: 8 }}>
-              EDINUN · Estados del agua {/* ← PERSONALIZAR: tema del juego */}
+              EDINUN · El Sol, la Luna y la vida en la Tierra {/* ← PERSONALIZAR: tema del juego */}
             </div>
             <h1 className="ed-h1" style={{ fontSize: 44, lineHeight: 1.05 }}>
               ¡Bienvenido/a,{" "}
@@ -272,7 +272,7 @@ function HomeScreen({ app, setApp, go }) {
             color: "#fce9a8",
             textAlign: "center",
           }}>
-            Calienta y enfría el agua 💧 {/* ← PERSONALIZAR: subtítulo corto */}
+            Estados del agua 💧 {/* ← PERSONALIZAR: subtítulo corto */}
           </div>
 
           <div>

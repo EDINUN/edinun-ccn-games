@@ -19,7 +19,7 @@ function PortalToBody({ children }) {
   return ReactDOM.createPortal(children, document.body);
 }
 
-const CAT_LABEL = "El ciclo de la vida";
+const CAT_LABEL = "Ciclo vital de los animales";
 const ROUNDS = 4;
 
 // ─────────────────────────────────────────────────────────────

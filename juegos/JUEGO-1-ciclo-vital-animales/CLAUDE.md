@@ -1,11 +1,13 @@
-# CLAUDE.md — JUEGO-1 · "El ciclo de la vida"
+# CLAUDE.md — JUEGO-1 · "Ciclo vital de los animales"
 
 > Juego publicable del repo `edinun-ccn-games`. Clonado de `_PLANTILLA/`.
 > Aparece en el landing con `slug: "JUEGO-1-ciclo-vital-animales"`.
+> **Título visible (2026-06-29):** "Ciclo vital de los animales" — rótulo del home,
+> tarjeta del landing y categoría del reporte (antes "El ciclo de la vida").
 
 ## Project
 
-**Juego: "El ciclo de la vida".** Carpeta autocontenida del repo multi-juego
+**Juego: "Ciclo vital de los animales".** Carpeta autocontenida del repo multi-juego
 `edinun-ccn-games` (Ciencias Naturales). Enseña el **ciclo vital de los animales**
 (TEMA 2 del libro): cómo nacen (ovíparos / vivíparos), cómo crecen y la
 metamorfosis (mariposa, rana, gallina). Mecánica **"Mira y toca"**: una consigna

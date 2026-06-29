@@ -14,6 +14,6 @@ accionable y sin jerga, ajustado a la edad.
 | _PLANTILLA   | — | demo, no publicable |
 | JUEGO-1-ciclo-vital-animales | 6 | "Mira y toca" (quiz visual con emojis); ciclo vital: ovíparo/vivíparo, crecimiento, metamorfosis. Sin timer, sin voz. |
 | JUEGO-2-la-semilla | 6 | "Mira y toca" + planta que crece (ilustraciones crece-1..4); la semilla: necesidades, el fruto guarda semillas, dispersión, partes de la planta. Guía Mía (química). |
-| JUEGO-3-estados-del-agua | 6 | "Calienta y enfría el agua": tocar ☀️ CALENTAR / ❄️ ENFRIAR para llevar el agua entre 🧊 sólido / 💧 líquido / ☁️ gaseoso a la meta de cada ronda. 3 rondas, sin presión de tiempo, todo CSS+emoji (sin imágenes). Guía Mía (química). TEMA 2 "El Sol, la Luna y la vida en la Tierra". |
+| JUEGO-3-estados-del-agua | 6 | Estados del agua (TEMA 2 "El Sol, la Luna y la vida en la Tierra"). Quiz de **decisión única** (como J1): cada ronda muestra el estado actual del agua y se toca ❄️ ENFRIAR / ☀️ CALENTAR para convertirla al estado pedido (🧊/💧/☁️). 3 rondas barajadas de un banco de 4; acierto transforma + ⭐, fallo revela y avanza. Sin presión de tiempo, todo CSS+emoji (sin imágenes). Guía Mía (química). |
 
 > (Se irá completando a medida que se creen juegos.)

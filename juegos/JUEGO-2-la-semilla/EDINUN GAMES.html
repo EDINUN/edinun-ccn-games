@@ -692,11 +692,29 @@ function shuffle(arr) {
   return a;
 }
 
-// Orden inicial de la bandeja: barajado y nunca ya resuelto.
+// Anti-repetición entre cargas/niños (mismo navegador): recuerda las últimas
+// barajadas de la bandeja para no volver a salir igual al recargar.
+const RECENT_KEY = "edinun_ccn_semilla_bandeja_v1";
+function getRecentTrays() {
+  try { const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+function rememberTray(order) {
+  const key = order.join(",");
+  const prev = getRecentTrays().filter((k) => k !== key);
+  const next = [key].concat(prev).slice(0, 3); // recuerda las últimas 3 barajadas
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) {}
+}
+
+// Orden inicial de la bandeja: barajado, nunca ya resuelto y DISTINTO a las
+// últimas veces (para que no salga igual a cada niño / cada recarga).
 function initialTrayOrder() {
+  const recent = new Set(getRecentTrays());
   let a = shuffle([0, 1, 2, 3]);
   let guard = 0;
-  while (a.join() === "0,1,2,3" && guard++ < 20) a = shuffle([0, 1, 2, 3]);
+  while ((a.join(",") === "0,1,2,3" || recent.has(a.join(","))) && guard++ < 40) {
+    a = shuffle([0, 1, 2, 3]);
+  }
   return a;
 }
 
@@ -762,6 +780,9 @@ function GameScreen({ app, setApp, go }) {
 
   // Limpia el conteo de revisión si la pantalla se desmonta.
   useEffectG(() => () => cancelCheck(), []);
+
+  // Recuerda la barajada de esta partida → la próxima carga sale distinta.
+  useEffectG(() => { rememberTray(trayOrder); }, []);
 
   // slotsArr[i] = stageId colocado en el casillero i (o null)
   const slotsArr = [null, null, null, null];
@@ -896,7 +917,9 @@ function GameScreen({ app, setApp, go }) {
     const fresh = ["tray", "tray", "tray", "tray"];
     placementRef.current = fresh;
     setPlacement(fresh);
-    setTrayOrder(initialTrayOrder());
+    const o = initialTrayOrder();
+    rememberTray(o);
+    setTrayOrder(o);
     setGhost(null); setReveal(null); setLocked(false); setStars(0);
     setFeedback(null); setFeedbackMsg("");
     firstDrag.current = false;
