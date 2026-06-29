@@ -344,7 +344,7 @@ function GameScreen({ app, setApp, go }) {
         {/* Título / instrucción */}
         <div style={{ textAlign: "center", pointerEvents: "none" }}>
           <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 22, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", lineHeight: 1.1 }}>
-            Ordena cómo crece la semilla
+            Ordena cómo crece la semilla.
           </div>
           <div style={{ fontFamily: "var(--ed-font-ui)", fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 3 }}>
             Arrastra las imágenes en orden, del 1 al 4.

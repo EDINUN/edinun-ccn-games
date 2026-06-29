@@ -62,11 +62,14 @@ al borde del lienzo). Definirlo solo con su **borde dorado + brillo interior**
 (`boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)"`). (Ojo: la queja "sombra fea
 al lado izquierdo" era esto, NO el `drop-shadow` del PNG del personaje.)
 
-## 8. Bocadillos/pistas declarativos terminan en PUNTO
+## 8. Textos declarativos terminan en PUNTO (bocadillos, pistas y enunciados)
 
-Las frases del bocadillo (pistas, instrucciones) llevan **punto final**: "Sale de
-un cascarón.", "De pequeño nada, de grande salta." Excepción: las que cierran con
-**¡…!** o **¿…?** NO llevan punto después ("¡Muy bien!"), según la RAE.
+Las frases declarativas de la UI —bocadillos, pistas, instrucciones **y el
+enunciado central**— llevan **punto final**: "Sale de un cascarón.", "De pequeño
+nada, de grande salta.", "Arrastra solo la comida sana al plato.", "Convierte el
+agua en 💧 Líquido." Excepción: las que cierran con **¡…!** o **¿…?** NO llevan
+punto después ("¡Muy bien!", "¿Es saludable este alimento?"), según la RAE. (En J3
+y J4 faltaba el punto del enunciado central declarativo; corregido.)
 
 ## 9. El formato EDINUN (guía + bocadillo) se clona del ÚLTIMO juego terminado
 

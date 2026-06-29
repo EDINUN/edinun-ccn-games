@@ -1,13 +1,15 @@
-// game-screens.jsx — JUEGO-3 · "Estados del agua" (Ciencias Naturales, 6 años).
-// Mecánica "Calienta y enfría el agua" sobre el FORMATO EDINUN: el niño toca
-// ☀️ CALENTAR o ❄️ ENFRIAR y el agua cambia de estado:
-//   🧊 Sólido  →  💧 Líquido  →  ☁️ Gaseoso   (calentar avanza, enfriar retrocede).
-// Cada ronda da una META (lleva el agua a tal estado). 3 rondas.
+// game-screens.jsx — JUEGO-4 · "Comida saludable" (Ciencias Naturales, 6 años).
+// TEMA 2 "Cuido mi salud física y mental": alimentación saludable.
+// Juego en 2 FASES sobre el FORMATO EDINUN:
+//   Fase 1 "¿Es saludable?" — 3 rondas: aparece un alimento y el niño toca
+//     ✅ SÍ, SANO / ❌ NO SANO (decisión única, como JUEGO-1/3).
+//   Fase 2 "Arma tu plato" — arrastra SOLO la comida sana al plato; la chatarra
+//     rebota con un aviso (motor de arrastre de JUEGO-2).
 //
 // CONTRATO: GameScreen/ResultsScreen({app,setApp,go}) expuestos en window;
-// markFirstAttempt() en el primer toque; incrementGamesCompleted() al terminar.
-// Invariantes EDINUN: fallar NO baja progreso (aquí solo se reacomoda, no penaliza);
-// salir/reiniciar con modal; bocadillo estable (no cambia en cada toque).
+// markFirstAttempt() en la 1ª acción; incrementGamesCompleted() al terminar.
+// Invariantes EDINUN: fallar NO baja progreso; al fallar se revela lo correcto;
+// salir/reiniciar con modal; barajado anti-repetición en cada carga.
 
 const { useState: useStateG, useEffect: useEffectG, useRef: useRefG } = React;
 
@@ -15,46 +17,41 @@ function PortalToBody({ children }) {
   return ReactDOM.createPortal(children, document.body);
 }
 
-const CAT_LABEL = "Estados del agua";
+const CAT_LABEL = "Comida saludable";
 
-// Estados en su orden físico (índice = posición en la escala de temperatura).
-const STATES = [
-  { key: "solido",  label: "Sólido",  corto: "hielo", emoji: "🧊", color: "#9db4ff" },
-  { key: "liquido", label: "Líquido", corto: "agua",  emoji: "💧", color: "#5fb0e6" },
-  { key: "gaseoso", label: "Gaseoso", corto: "vapor", emoji: "☁️", color: "#c9cdd6" },
+// Banco de alimentos. ok=true → saludable; ok=false → chatarra.
+const FOODS = [
+  { e: "🍎", t: "Manzana", ok: true },
+  { e: "🍌", t: "Plátano", ok: true },
+  { e: "🍓", t: "Fresa", ok: true },
+  { e: "🥦", t: "Brócoli", ok: true },
+  { e: "🥕", t: "Zanahoria", ok: true },
+  { e: "🍅", t: "Tomate", ok: true },
+  { e: "🌽", t: "Maíz", ok: true },
+  { e: "🥑", t: "Aguacate", ok: true },
+  { e: "🍇", t: "Uvas", ok: true },
+  { e: "🍐", t: "Pera", ok: true },
+  { e: "🥗", t: "Ensalada", ok: true },
+  { e: "💧", t: "Agua", ok: true },
+  { e: "🍔", t: "Hamburguesa", ok: false },
+  { e: "🍟", t: "Papas fritas", ok: false },
+  { e: "🍕", t: "Pizza", ok: false },
+  { e: "🍰", t: "Pastel", ok: false },
+  { e: "🧁", t: "Pastelito", ok: false },
+  { e: "🍭", t: "Paleta", ok: false },
+  { e: "🍬", t: "Caramelo", ok: false },
+  { e: "🥤", t: "Gaseosa", ok: false },
+  { e: "🍩", t: "Dona", ok: false },
+  { e: "🍫", t: "Chocolate", ok: false },
 ];
+const HEALTHY_IDS = FOODS.map((_, i) => i).filter((i) => FOODS[i].ok);
+const JUNK_IDS = FOODS.map((_, i) => i).filter((i) => !FOODS[i].ok);
 
-// Banco de transiciones de UN paso (estados vecinos). UNA decisión por ronda; la
-// acción correcta se deduce: si la meta es más caliente (goal > start) → CALENTAR;
-// si es más fría → ENFRIAR. Cada partida elige N al azar y barajadas.
-const ROUND_BANK = [
-  { start: 1, goal: 0 }, // 💧 agua  → 🧊 hielo  · ENFRIAR (se congela)
-  { start: 0, goal: 1 }, // 🧊 hielo → 💧 agua   · CALENTAR (se derrite)
-  { start: 1, goal: 2 }, // 💧 agua  → ☁️ vapor  · CALENTAR (hierve)
-  { start: 2, goal: 1 }, // ☁️ vapor → 💧 agua   · ENFRIAR (se enfría)
-];
-const N = 3; // rondas por partida
+const N_CLASSIFY = 2;     // rondas de la Fase 1
+const PLATE_HEALTHY = 4;  // alimentos sanos que van al plato (Fase 2)
+const PLATE_JUNK = 2;     // chatarra mezclada en la bandeja del plato
+const N = N_CLASSIFY + 1; // total de pasos (3 clasificar + 1 plato) → dots de RONDA
 
-// Acción correcta para una ronda ("calentar" sube de estado, "enfriar" baja).
-function correctActionFor(r) {
-  return r.goal > r.start ? "calentar" : "enfriar";
-}
-function actionLabel(a) {
-  return a === "calentar" ? "Calentar ☀️" : "Enfriar ❄️";
-}
-
-// Anti-repetición entre cargas/niños (mismo navegador): recuerda las últimas
-// transiciones vistas y las evita al armar la próxima partida → no sale igual.
-const RECENT_KEY = "edinun_ccn_agua_recientes_v1";
-function getRecent() {
-  try { const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); return Array.isArray(r) ? r : []; }
-  catch (e) { return []; }
-}
-function pushRecent(ids) {
-  const prev = getRecent().filter((id) => ids.indexOf(id) === -1);
-  const next = ids.concat(prev).slice(0, ROUND_BANK.length - 1);
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) {}
-}
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -63,198 +60,263 @@ function shuffle(arr) {
   }
   return a;
 }
-// Elige n índices del banco: primero los NO vistos recientemente (barajados),
-// completando con los vistos si hace falta. Garantiza variación al recargar.
-function pickRounds(n) {
+
+// Anti-repetición entre cargas/niños: recuerda alimentos vistos para que cada
+// partida salga distinta.
+const RECENT_KEY = "edinun_ccn_comida_recientes_v1";
+function getRecent() {
+  try { const r = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+function pushRecent(ids) {
+  const prev = getRecent().filter((id) => ids.indexOf(id) === -1);
+  const next = ids.concat(prev).slice(0, 10);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) {}
+}
+
+// Fase 1: N alimentos con MEZCLA (al menos 1 sano + 1 chatarra), evitando recientes.
+function pickClassify(n) {
   const recent = new Set(getRecent());
-  const all = ROUND_BANK.map((_, i) => i);
-  const fresh = shuffle(all.filter((i) => !recent.has(i)));
-  const stale = shuffle(all.filter((i) => recent.has(i)));
-  return fresh.concat(stale).slice(0, n);
+  const healthy = shuffle(HEALTHY_IDS.filter((i) => !recent.has(i))).concat(shuffle(HEALTHY_IDS.filter((i) => recent.has(i))));
+  const junk = shuffle(JUNK_IDS.filter((i) => !recent.has(i))).concat(shuffle(JUNK_IDS.filter((i) => recent.has(i))));
+  const pick = [healthy[0], junk[0]];
+  const rest = shuffle(healthy.slice(1).concat(junk.slice(1)));
+  let k = 0;
+  while (pick.length < n) pick.push(rest[k++]);
+  return shuffle(pick.slice(0, n));
+}
+
+// Fase 2: bandeja del plato = PLATE_HEALTHY sanos + PLATE_JUNK chatarra, barajados.
+function pickPlate() {
+  const recent = new Set(getRecent());
+  const healthy = shuffle(HEALTHY_IDS.filter((i) => !recent.has(i))).concat(shuffle(HEALTHY_IDS.filter((i) => recent.has(i))));
+  const junk = shuffle(JUNK_IDS.filter((i) => !recent.has(i))).concat(shuffle(JUNK_IDS.filter((i) => recent.has(i))));
+  return shuffle(healthy.slice(0, PLATE_HEALTHY).concat(junk.slice(0, PLATE_JUNK)));
 }
 
 // ─────────────────────────────────────────────────────────────
-// Vaso de agua que cambia de estado (todo CSS + emoji, sin imágenes).
+// Ficha de alimento (emoji + nombre).
 // ─────────────────────────────────────────────────────────────
-function WaterView({ state }) {
-  const s = STATES[state];
-  const gas = state === 2;
-  const fillH = state === 0 ? "90%" : state === 1 ? "66%" : "12%";
-  const fillBg = state === 0
-    ? "linear-gradient(180deg,#eaf6ff,#a9d4f5)"
-    : state === 1
-    ? "linear-gradient(180deg,#8fd0ff,#3a86d6)"
-    : "linear-gradient(180deg,#bfe6ff,#9bd3ef)";
+function FoodTile({ food, size, dim }) {
   return (
-    <div style={{ position: "relative", width: 160, height: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      {/* Vapor escapando del vaso (solo gaseoso) */}
-      {gas && (
-        <div style={{ position: "absolute", top: -10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 8 }}>
-          <span className="ed-float-soft" style={{ fontSize: 22 }}>💨</span>
-          <span className="ed-float-soft" style={{ fontSize: 18, marginTop: 4 }}>💨</span>
-        </div>
-      )}
-      {/* Vaso */}
-      <div style={{ position: "relative", width: 128, height: 142, borderRadius: "12px 12px 26px 26px", border: "5px solid rgba(255,255,255,0.92)", borderTop: "none", overflow: "hidden", background: "rgba(255,255,255,0.06)", boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.15), 0 10px 22px rgba(0,0,0,0.35)" }}>
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: fillH, background: fillBg, transition: "height 0.45s ease, background 0.45s ease", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: state === 0 ? "8px 8px 0 0" : 0 }}>
-          {!gas && <span style={{ fontSize: 52, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.25))" }}>{s.emoji}</span>}
-        </div>
-        {/* En gaseoso, el agua se volvió vapor: una nube llena el vaso */}
-        {gas && (
-          <div style={{ position: "absolute", left: 0, right: 0, top: "20%", display: "flex", justifyContent: "center" }}>
-            <span className="ed-float-soft" style={{ fontSize: 54, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.25))" }}>☁️</span>
-          </div>
-        )}
-      </div>
+    <div style={{
+      width: size, height: size, borderRadius: 18, border: "3px solid #f2c260",
+      background: "linear-gradient(180deg,#fff8e6,#f7e3a8)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+      boxShadow: "0 8px 16px rgba(0,0,0,0.3), inset 0 -3px 0 rgba(0,0,0,0.10)",
+      opacity: dim ? 0.32 : 1, userSelect: "none",
+    }}>
+      <span style={{ fontSize: Math.round(size * 0.44), lineHeight: 1 }}>{food.e}</span>
+      <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: Math.max(9, Math.round(size * 0.12)), color: "#3a2608", lineHeight: 1 }}>{food.t}</span>
     </div>
   );
 }
 
+const TILE = 76;       // ficha en la bandeja (6 caben en una sola fila)
+const PLATE_TILE = 58; // ficha dentro del plato
+
 function GameScreen({ app, setApp, go }) {
   const char = CHARACTERS.find((c) => c.id === app.character) || CHARACTERS[0];
 
-  const [rounds, setRounds] = useStateG(() => pickRounds(N)); // índices al ROUND_BANK
-  const [round, setRound] = useStateG(0);
-  const [cur, setCur] = useStateG(() => ROUND_BANK[rounds[0]].start); // estado en el vaso
-  const [answered, setAnswered] = useStateG(false);    // ya eligió en esta ronda
-  const [picked, setPicked] = useStateG(null);         // "calentar" | "enfriar"
+  const [phase, setPhase] = useStateG("clasificar"); // "clasificar" | "plato"
+
+  // ── Fase 1 (clasificar) ──
+  const [cFoods, setCFoods] = useStateG(() => pickClassify(N_CLASSIFY)); // ids del banco
+  const [cIdx, setCIdx] = useStateG(0);
+  const [answered, setAnswered] = useStateG(false);
+  const [picked, setPicked] = useStateG(null); // "si" | "no"
+
+  // ── Fase 2 (plato) ──
+  const [plateFoods, setPlateFoods] = useStateG(() => pickPlate());                  // ids del banco (6)
+  const [placement, setPlacement] = useStateG(() => plateFoods.map(() => "tray"));   // "tray" | "plate" por índice local
+  const placementRef = useRefG(placement); placementRef.current = placement;
+  const [ghost, setGhost] = useStateG(null); // { localIdx, x, y } en coords lógicas
+  const [reject, setReject] = useStateG(false);
+
+  // ── Comunes ──
   const [stars, setStars] = useStateG(0);
   const [elapsed, setElapsed] = useStateG(0);
-  const [feedback, setFeedback] = useStateG(null);     // "ok" | "err" overlay
+  const [feedback, setFeedback] = useStateG(null);
   const [feedbackMsg, setFeedbackMsg] = useStateG("");
   const [log, setLog] = useStateG([]);
   const [confirmingExit, setConfirmingExit] = useStateG(false);
   const [confirmingRestart, setConfirmingRestart] = useStateG(false);
 
+  const rootRef = useRefG(null);
   const started = useRefG(Date.now());
-  const firstTap = useRefG(false);
+  const firstAct = useRefG(false);
+  const logRef = useRefG(log); logRef.current = log;
+  const starsRef = useRefG(stars); starsRef.current = stars;
+  const doneRef = useRefG(false); // evita doble evaluación del plato
 
   useEffectG(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - started.current) / 1000)), 500);
     return () => clearInterval(id);
   }, []);
 
-  // Recuerda las transiciones de esta partida → la próxima carga sale distinta.
-  useEffectG(() => { pushRecent(rounds); }, []);
-
-  const rd = ROUND_BANK[rounds[round]];
-  const goal = rd.goal;
-  const correctAction = correctActionFor(rd);
+  // Recuerda los alimentos de esta partida → la próxima carga sale distinta.
+  useEffectG(() => { pushRecent(cFoods.concat(plateFoods)); }, []);
 
   function formatTime(s) {
     const m = Math.floor(s / 60), ss = s % 60;
     return `${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   }
-
-  function startRound(r) {
-    setRound(r);
-    setCur(ROUND_BANK[rounds[r]].start);
-    setAnswered(false);
-    setPicked(null);
+  function markFirst() {
+    if (!firstAct.current) { firstAct.current = true; if (typeof markFirstAttempt === "function") markFirstAttempt(); }
   }
 
-  // UNA decisión por ronda: tocar CALENTAR o ENFRIAR. Acierto → el agua se
-  // transforma + ⭐. Fallo → se revela la acción correcta y se pasa a la
-  // siguiente ronda (NO baja el progreso ya ganado).
-  function onAnswer(action) {
-    if (answered) return;
-    if (!firstTap.current) {
-      firstTap.current = true;
-      if (typeof markFirstAttempt === "function") markFirstAttempt();
-    }
-    const isCorrect = action === correctAction;
-    setPicked(action);
-    setAnswered(true);           // revelado inmediato: aros en botones + meta en verde
-    if (isCorrect) setCur(goal); // el agua se transforma a la meta
+  // ── FASE 1: clasificar (decisión única SÍ/NO) ──
+  const curFood = FOODS[cFoods[cIdx]];
+  const correctYN = curFood && curFood.ok ? "si" : "no";
 
-    const newStars = stars + (isCorrect ? 1 : 0);
-    if (isCorrect) {
-      setStars(newStars);
-      setApp((s) => ({ ...s, stars: (s.stars || 0) + 1 }));
-    }
+  function onClassify(ans) {
+    if (answered || phase !== "clasificar") return;
+    markFirst();
+    const isCorrect = ans === correctYN;
+    setPicked(ans);
+    setAnswered(true);
+    if (isCorrect) setStars((s) => s + 1);
 
     const entry = {
-      idx: round + 1,
-      emoji: STATES[goal].emoji,
-      a: `Ronda ${round + 1}`,
-      correctAnswer: `${STATES[goal].emoji} ${STATES[goal].label}`,
-      correctActionLabel: actionLabel(correctAction),
-      userActionLabel: actionLabel(action),
+      idx: cIdx + 1, kind: "clasificar", emoji: curFood.e, a: curFood.t,
+      correctAnswer: curFood.ok ? "Sí, sano" : "No sano",
+      userAnswer: ans === "si" ? "Sí, sano" : "No sano",
       isCorrect,
     };
-    const newLog = [...log, entry];
-    setLog(newLog);
+    setLog((L) => [...L, entry]);
 
-    // Al fallar, deja ver el revelado (verde/rojo) ANTES de mostrar el "¡UPS!".
-    const overlayDelay = isCorrect ? 350 : 1000;
-    const overlayHold = 1400;
+    const overlayDelay = isCorrect ? 350 : 1000; // al fallar, deja ver el revelado
     setTimeout(() => {
       setFeedback(isCorrect ? "ok" : "err");
       setFeedbackMsg(isCorrect
         ? "¡Muy bien! ⭐"
-        : `Para hacer ${STATES[goal].emoji} ${STATES[goal].label} hay que ${actionLabel(correctAction).toUpperCase()}`);
+        : (curFood.ok ? `El ${curFood.t} SÍ es sano 🍎` : `El ${curFood.t} NO es sano 🍔`));
     }, overlayDelay);
-
-    const isLast = round + 1 >= N;
     setTimeout(() => {
-      setFeedback(null);
-      setFeedbackMsg("");
-      if (isLast) {
-        if (typeof incrementGamesCompleted === "function") incrementGamesCompleted();
-        const solved = newLog.filter((e) => e.isCorrect).length;
-        setApp((s) => ({
-          ...s,
-          stars: newStars,
-          lastResult: {
-            category: CAT_LABEL,
-            solved,
-            total: N,
-            time: Math.floor((Date.now() - started.current) / 1000),
-            starsEarned: newStars,
-            log: newLog,
-          },
-        }));
-        go("results");
+      setFeedback(null); setFeedbackMsg("");
+      if (cIdx + 1 < N_CLASSIFY) {
+        setCIdx(cIdx + 1); setAnswered(false); setPicked(null);
       } else {
-        startRound(round + 1);
+        setPhase("plato"); // pasa a armar el plato
       }
-    }, overlayDelay + overlayHold);
+    }, overlayDelay + 1400);
+  }
+
+  // Aro de revelado en los botones SÍ/NO (verde = correcto, rojo = elegido mal).
+  function ynRing(ans) {
+    const base = "0 8px 18px rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.12)";
+    if (!answered) return base;
+    if (ans === correctYN) return "0 0 0 4px #2ecc8f, " + base;
+    if (ans === picked) return "0 0 0 4px #ff6b6b, " + base;
+    return base;
+  }
+  function ynDim(ans) { return answered && ans !== correctYN && ans !== picked; }
+
+  // ── FASE 2: arrastrar al plato ──
+  function toLogical(clientX, clientY) {
+    const r = rootRef.current.getBoundingClientRect();
+    return { x: (clientX - r.left) * 900 / r.width, y: (clientY - r.top) * 540 / r.height };
+  }
+
+  function onTileDown(e, localIdx) {
+    if (placementRef.current[localIdx] === "plate" || doneRef.current) return;
+    markFirst();
+    e.preventDefault();
+    const cardRect = e.currentTarget.getBoundingClientRect();
+    const tl = toLogical(cardRect.left, cardRect.top);
+    const p = toLogical(e.clientX, e.clientY);
+    const off = { x: p.x - tl.x, y: p.y - tl.y };
+    setGhost({ localIdx, x: tl.x, y: tl.y });
+    const onMove = (ev) => {
+      const q = toLogical(ev.clientX, ev.clientY);
+      setGhost((g) => (g ? { ...g, x: q.x - off.x, y: q.y - off.y } : g));
+    };
+    const onUp = (ev) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      handleDrop(ev, localIdx);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function handleDrop(ev, localIdx) {
+    setGhost(null);
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const onPlate = el && el.closest ? el.closest("[data-plate]") : null;
+    if (!onPlate) return; // soltó fuera del plato → vuelve solo a la bandeja
+    const foodId = plateFoods[localIdx];
+    if (FOODS[foodId].ok) {
+      const next = placementRef.current.slice();
+      next[localIdx] = "plate";
+      placementRef.current = next;
+      setPlacement(next);
+      checkPlate(next);
+    } else {
+      // chatarra: rebota y avisa
+      setReject(true);
+      setTimeout(() => setReject(false), 1200);
+    }
+  }
+
+  function checkPlate(next) {
+    const healthyPlaced = next.filter((loc, i) => loc === "plate" && FOODS[plateFoods[i]].ok).length;
+    if (healthyPlaced >= PLATE_HEALTHY && !doneRef.current) finishPlate();
+  }
+
+  function finishPlate() {
+    doneRef.current = true;
+    const finalStars = starsRef.current + 1; // el plato suma 1 ⭐
+    setStars(finalStars);
+    const plateEntry = {
+      idx: N_CLASSIFY + 1, kind: "plato", emoji: "🍽️", a: "Arma tu plato",
+      correctAnswer: "Solo comida sana", userAnswer: "Plato sano", isCorrect: true,
+    };
+    const finalLog = logRef.current.concat([plateEntry]);
+    setLog(finalLog);
+    const solved = finalLog.filter((e) => e.isCorrect).length;
+    setFeedback("ok");
+    setFeedbackMsg("¡Plato saludable! 🥗");
+    if (typeof incrementGamesCompleted === "function") incrementGamesCompleted();
+    setApp((s) => ({
+      ...s,
+      stars: finalStars,
+      lastResult: {
+        category: CAT_LABEL,
+        solved,
+        total: N,
+        time: Math.floor((Date.now() - started.current) / 1000),
+        starsEarned: finalStars,
+        log: finalLog,
+      },
+    }));
+    setTimeout(() => go("results"), 1800);
   }
 
   function confirmRestart() {
     setConfirmingRestart(false);
-    const next = pickRounds(N);   // baraja de nuevo (distinto a lo recién jugado)
-    pushRecent(next);
-    setRounds(next);
+    const c = pickClassify(N_CLASSIFY);
+    const p = pickPlate();
+    pushRecent(c.concat(p));
+    setCFoods(c); setPlateFoods(p);
+    setPlacement(p.map(() => "tray")); placementRef.current = p.map(() => "tray");
+    setPhase("clasificar"); setCIdx(0); setAnswered(false); setPicked(null);
+    setGhost(null); setReject(false); doneRef.current = false;
     setStars(0); setLog([]); setFeedback(null); setFeedbackMsg("");
-    firstTap.current = false;
+    firstAct.current = false;
     started.current = Date.now();
-    setRound(0);
-    setCur(ROUND_BANK[next[0]].start);
-    setAnswered(false);
-    setPicked(null);
   }
 
-  // Bocadillo: pregunta estable; al responder, celebra o invita a mirar.
-  const bocadillo = !answered
-    ? "¿Le damos calor o frío?"
-    : (picked === correctAction ? "¡Muy bien!" : "¡Casi! Mira la respuesta.");
+  // Bocadillo del guía (estable; reacciona al revelar / rechazar).
+  const bocadillo = phase === "clasificar"
+    ? (!answered ? "¿Este alimento es sano?" : (picked === correctYN ? "¡Muy bien!" : "¡Casi! Mira la respuesta."))
+    : (reject ? "¡Esa no es sana!" : "Pon en el plato solo lo sano.");
 
-  // Aro de revelado en los botones: verde = correcto, rojo = elegido mal.
-  const btnBaseShadow = "0 8px 18px rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.12)";
-  function revealRing(action) {
-    if (!answered) return btnBaseShadow;
-    if (action === correctAction) return "0 0 0 4px #2ecc8f, " + btnBaseShadow;
-    if (action === picked) return "0 0 0 4px #ff6b6b, " + btnBaseShadow;
-    return btnBaseShadow;
-  }
-  // Atenúa el botón que no es ni la correcta ni la que tocó el niño (al revelar).
-  function dimBtn(action) {
-    return answered && action !== correctAction && action !== picked;
-  }
+  const draggingIdx = ghost ? ghost.localIdx : null;
+  const healthyPlaced = placement.filter((loc, i) => loc === "plate" && FOODS[plateFoods[i]].ok).length;
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+    <div ref={rootRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
       {/* ── HUD: logo izq, tiempo + estrellas der ── */}
       <div style={{ position: "absolute", top: 10, left: 16, right: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <EdinunLogoMini size={60} />
@@ -273,11 +335,14 @@ function GameScreen({ app, setApp, go }) {
         <span className="ed-label" style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Ronda</span>
         {Array.from({ length: N }).map((_, i) => {
           const done = i < log.length;
+          const ok = done && log[i] && log[i].isCorrect;
+          const current = i === log.length;
           return (
             <div key={i} style={{
               width: 11, height: 11, borderRadius: "50%",
-              background: done ? "#fce9a8" : (i === round ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"),
-              boxShadow: done ? "0 0 8px #fce9a8" : "none",
+              background: done ? (ok ? "#fce9a8" : "#ff6b6b") : (current ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.2)"),
+              boxShadow: done ? "0 0 8px currentColor" : "none",
+              color: ok ? "#fce9a8" : "#ff6b6b",
             }} />
           );
         })}
@@ -305,62 +370,83 @@ function GameScreen({ app, setApp, go }) {
         <div style={{ marginTop: -2, fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 13, color: "#fce9a8", letterSpacing: "0.04em", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>{char.name}</div>
       </div>
 
-      {/* ── Zona central: título + barra de estados + vaso + botones (centrada) ── */}
+      {/* ── Zona central (centrada en X: left/right 183) ── */}
       <div style={{ position: "absolute", top: 30, bottom: 14, left: 183, right: 183, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly" }}>
-        {/* Enunciado: a qué estado debe llevar el agua (texto principal y claro) */}
-        <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 23, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 470 }}>
-          Convierte el {STATES[rd.start].emoji} {STATES[rd.start].corto} en{" "}
-          <span style={{ color: "#fce9a8" }}>{STATES[goal].emoji} {STATES[goal].label}</span>.
-        </div>
+        {phase === "clasificar" ? (
+          <React.Fragment>
+            {/* Enunciado */}
+            <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 23, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 470 }}>
+              ¿Es saludable este alimento?
+            </div>
 
-        {/* Barra de estados: actual en dorado, meta en verde (punteada → sólida al revelar) */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {STATES.map((s, i) => {
-            const isCur = i === cur;
-            const isGoal = i === goal;
-            const reached = answered && isGoal;
-            const bg = reached ? "rgba(46,204,143,0.22)" : isCur ? "rgba(242,194,96,0.22)" : isGoal ? "rgba(46,204,143,0.14)" : "rgba(0,0,0,0.18)";
-            const bd = reached ? "3px solid #2ecc8f" : isCur ? "3px solid #f2c260" : isGoal ? "3px dashed rgba(46,204,143,0.8)" : "3px solid rgba(255,255,255,0.12)";
-            const lbl = reached ? "#9ff0c8" : isCur ? "#fce9a8" : "rgba(255,255,255,0.75)";
-            return (
-              <React.Fragment key={s.key}>
-                {i > 0 && <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 20 }}>→</span>}
-                <div style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 12px", borderRadius: 14, minWidth: 78,
-                  background: bg, border: bd, transition: "all 0.25s ease",
-                }}>
-                  <span style={{ fontSize: 28, lineHeight: 1 }}>{s.emoji}</span>
-                  <span style={{ fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 12, color: lbl }}>{s.label}</span>
+            {/* Carta del alimento */}
+            <div key={cIdx} data-ok={curFood.ok ? "1" : "0"} style={{ animation: "ed-pop-in 0.25s" }}>
+              <FoodTile food={curFood} size={150} />
+            </div>
+
+            {/* Botones SÍ / NO */}
+            <div style={{ display: "flex", gap: 16 }}>
+              <button onClick={() => onClassify("si")} disabled={answered} title="Sí, es saludable"
+                style={{ width: 168, height: 60, borderRadius: 16, border: "3px solid #2f9e54", cursor: answered ? "default" : "pointer",
+                  background: "linear-gradient(180deg,#a7e8be,#5cc47e)", color: "#0a3a1e",
+                  fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  boxShadow: ynRing("si"), transition: "all 0.2s ease", opacity: ynDim("si") ? 0.45 : 1 }}>
+                <span style={{ fontSize: 24 }}>✅</span>SÍ, SANO
+              </button>
+              <button onClick={() => onClassify("no")} disabled={answered} title="No es saludable"
+                style={{ width: 168, height: 60, borderRadius: 16, border: "3px solid #d15454", cursor: answered ? "default" : "pointer",
+                  background: "linear-gradient(180deg,#ffc1c1,#ef8a8a)", color: "#5a0e0e",
+                  fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  boxShadow: ynRing("no"), transition: "all 0.2s ease", opacity: ynDim("no") ? 0.45 : 1 }}>
+                <span style={{ fontSize: 24 }}>❌</span>NO SANO
+              </button>
+            </div>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            {/* Enunciado */}
+            <div style={{ textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 22, lineHeight: 1.15, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.55)", pointerEvents: "none", maxWidth: 480 }}>
+              Arrastra <span style={{ color: "#fce9a8" }}>solo la comida sana</span> al plato.
+            </div>
+
+            {/* Plato (zona de soltado) */}
+            <div data-plate="1" style={{
+              width: 232, height: 178, borderRadius: "50%",
+              background: reject ? "radial-gradient(circle at 50% 38%, #ffd9d9, #f3b6b6)" : "radial-gradient(circle at 50% 38%, #ffffff, #e7eef5)",
+              border: "8px solid #cfd8e3", boxShadow: "0 12px 26px rgba(0,0,0,0.35), inset 0 -6px 0 rgba(0,0,0,0.06)",
+              display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "center", padding: 16,
+              transition: "background 0.2s ease",
+            }}>
+              {placement.map((loc, i) => loc === "plate" ? (
+                <div key={i} style={{ animation: "ed-pop-in 0.2s" }}>
+                  <FoodTile food={FOODS[plateFoods[i]]} size={PLATE_TILE} />
                 </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
+              ) : null)}
+              {healthyPlaced === 0 && (
+                <span style={{ fontFamily: "var(--ed-font-ui)", fontSize: 13, color: "#8a93a3", fontWeight: 700 }}>tu plato</span>
+              )}
+            </div>
 
-        {/* Vaso de agua (hace pop al cambiar de estado) */}
-        <div key={`${round}-${cur}`} style={{ animation: "ed-pop-in 0.25s" }}>
-          <WaterView state={cur} />
-        </div>
-
-        {/* Botones: ENFRIAR (frío, izq) · CALENTAR (calor, der) — siguen la barra 🧊→💧→☁️ */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <button onClick={() => onAnswer("enfriar")} disabled={answered} title="Enfriar con el hielo"
-            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #4f9fd6", cursor: answered ? "default" : "pointer",
-              background: "linear-gradient(180deg,#bfe6ff,#7cc2f0)", color: "#0a3a5a",
-              fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: revealRing("enfriar"), transition: "all 0.2s ease", opacity: dimBtn("enfriar") ? 0.45 : 1 }}>
-            <span style={{ fontSize: 26 }}>❄️</span>ENFRIAR
-          </button>
-          <button onClick={() => onAnswer("calentar")} disabled={answered} title="Calentar con el Sol"
-            style={{ width: 154, height: 60, borderRadius: 16, border: "3px solid #e8902f", cursor: answered ? "default" : "pointer",
-              background: "linear-gradient(180deg,#ffd27a,#f2992f)", color: "#5a2e00",
-              fontFamily: "var(--ed-font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "0.02em",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: revealRing("calentar"), transition: "all 0.2s ease", opacity: dimBtn("calentar") ? 0.45 : 1 }}>
-            <span style={{ fontSize: 26 }}>☀️</span>CALENTAR
-          </button>
-        </div>
+            {/* Bandeja con alimentos para arrastrar */}
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", flexWrap: "nowrap", padding: "8px 10px", borderRadius: 20, background: "rgba(0,0,0,0.22)", border: "1.5px solid rgba(242,194,96,0.25)" }}>
+              {plateFoods.map((foodId, i) => {
+                if (placement[i] === "plate") {
+                  return <div key={i} style={{ width: TILE, height: TILE, borderRadius: 16, border: "2px dashed rgba(255,255,255,0.12)" }} />;
+                }
+                if (i === draggingIdx) {
+                  return <div key={i} style={{ width: TILE, height: TILE }}><FoodTile food={FOODS[foodId]} size={TILE} dim /></div>;
+                }
+                return (
+                  <div key={i} data-tile={FOODS[foodId].t} data-ok={FOODS[foodId].ok ? "1" : "0"} onPointerDown={(e) => onTileDown(e, i)} style={{ touchAction: "none", cursor: "grab" }}>
+                    <FoodTile food={FOODS[foodId]} size={TILE} />
+                  </div>
+                );
+              })}
+            </div>
+          </React.Fragment>
+        )}
       </div>
 
       {/* ── Acciones (derecha): REINICIAR · SALIR ── */}
@@ -372,6 +458,13 @@ function GameScreen({ app, setApp, go }) {
           SALIR
         </button>
       </div>
+
+      {/* ── Ficha fantasma que sigue al dedo/cursor (Fase 2) ── */}
+      {ghost && (
+        <div style={{ position: "absolute", left: ghost.x, top: ghost.y, width: TILE, height: TILE, pointerEvents: "none", zIndex: 2000, transform: "scale(1.08)" }}>
+          <FoodTile food={FOODS[plateFoods[ghost.localIdx]]} size={TILE} />
+        </div>
+      )}
 
       {/* ── Overlay de feedback ── */}
       {feedback && (
@@ -409,7 +502,7 @@ function GameScreen({ app, setApp, go }) {
             <div onClick={(e) => e.stopPropagation()} className="ed-card" style={{ padding: 24, maxWidth: 440, textAlign: "center", boxShadow: "var(--ed-shadow-card), 0 0 40px rgba(255,107,107,0.3)" }}>
               <div className="ed-label" style={{ color: "#ff8b8b", marginBottom: 6 }}>Salir del juego</div>
               <h2 className="ed-h1" style={{ fontSize: 22, lineHeight: 1.15, marginBottom: 8 }}>¿Volver al inicio?</h2>
-              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Vas a perder lo de esta ronda.</p>
+              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Vas a perder lo de esta partida.</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <button className="ed-btn ed-btn-ghost" onClick={() => setConfirmingExit(false)} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SEGUIR JUGANDO</button>
                 <button className="ed-btn ed-btn-primary" onClick={() => { setConfirmingExit(false); go("home"); }} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SÍ, SALIR</button>
@@ -426,7 +519,7 @@ function GameScreen({ app, setApp, go }) {
             <div onClick={(e) => e.stopPropagation()} className="ed-card" style={{ padding: 24, maxWidth: 440, textAlign: "center", boxShadow: "var(--ed-shadow-card), 0 0 40px rgba(155,123,232,0.3)" }}>
               <div className="ed-label" style={{ color: "#c4a8ff", marginBottom: 6 }}>Reiniciar juego</div>
               <h2 className="ed-h1" style={{ fontSize: 22, lineHeight: 1.15, marginBottom: 8 }}>¿Empezar de nuevo?</h2>
-              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Vuelves a la ronda 1.</p>
+              <p className="ed-body" style={{ marginBottom: 16, fontSize: 14 }}>Salen otros alimentos.</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <button className="ed-btn ed-btn-ghost" onClick={() => setConfirmingRestart(false)} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SEGUIR JUGANDO</button>
                 <button className="ed-btn ed-btn-primary" onClick={confirmRestart} style={{ height: 44, fontWeight: 800, letterSpacing: "0.04em" }}>SÍ, REINICIAR</button>
@@ -440,7 +533,7 @@ function GameScreen({ app, setApp, go }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// RESULTS — reporte académico (mismo formato que los otros juegos).
+// RESULTS — reporte académico imprimible.
 // ─────────────────────────────────────────────────────────────
 const printStyles = {
   doc: { padding: 0, margin: 0, color: "#111", background: "#fff" },
@@ -493,9 +586,9 @@ function PrintableReport({ studentName, res, dateStr, mm, ss, attemptedCount, ac
           <thead>
             <tr style={printStyles.thHead}>
               <th style={printStyles.th}>#</th>
-              <th style={printStyles.th}>Ronda</th>
-              <th style={{ ...printStyles.th, ...printStyles.thR }}>Meta</th>
-              <th style={{ ...printStyles.th, ...printStyles.thR }}>Acción correcta</th>
+              <th style={printStyles.th}>Ítem</th>
+              <th style={{ ...printStyles.th, ...printStyles.thR }}>Correcto</th>
+              <th style={{ ...printStyles.th, ...printStyles.thR }}>Tu respuesta</th>
               <th style={{ ...printStyles.th, ...printStyles.thC }}>Resultado</th>
             </tr>
           </thead>
@@ -505,16 +598,16 @@ function PrintableReport({ studentName, res, dateStr, mm, ss, attemptedCount, ac
                 <td style={{ ...printStyles.td, ...printStyles.tdNum }}>{e.idx}</td>
                 <td style={{ ...printStyles.td, fontWeight: 700 }}>{e.emoji} {e.a}</td>
                 <td style={{ ...printStyles.td, textAlign: "right" }}>{e.correctAnswer}</td>
-                <td style={{ ...printStyles.td, textAlign: "right" }}>{e.correctActionLabel}</td>
-                <td style={{ ...printStyles.td, ...(e.isCorrect ? printStyles.tdOk : printStyles.tdErr) }}>{e.isCorrect ? "Correcta" : "Incorrecta"}</td>
+                <td style={{ ...printStyles.td, textAlign: "right" }}>{e.userAnswer}</td>
+                <td style={{ ...printStyles.td, ...(e.isCorrect ? printStyles.tdOk : printStyles.tdErr) }}>{e.isCorrect ? "Correcto" : "Incorrecto"}</td>
               </tr>
             ))}
-            {log.length === 0 && (<tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#888", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
+            {log.length === 0 && (<tr><td colSpan={5} style={{ padding: 24, textAlign: "center", color: "#888", fontStyle: "italic" }}>Sin ejercicios.</td></tr>)}
           </tbody>
         </table>
         <div style={printStyles.summary}>
-          <div style={printStyles.cell}><div style={printStyles.cellL}>Rondas</div><div style={printStyles.cellV}>{attemptedCount} / {res.total}</div></div>
-          <div style={printStyles.cell}><div style={printStyles.cellL}>Logradas</div><div style={printStyles.cellV}>{res.solved}</div></div>
+          <div style={printStyles.cell}><div style={printStyles.cellL}>Ejercicios</div><div style={printStyles.cellV}>{attemptedCount} / {res.total}</div></div>
+          <div style={printStyles.cell}><div style={printStyles.cellL}>Aciertos</div><div style={printStyles.cellV}>{res.solved}</div></div>
           <div style={printStyles.cell}><div style={printStyles.cellL}>Estrellas</div><div style={printStyles.cellV}>{res.starsEarned}</div></div>
           <div style={{ ...printStyles.cell, ...printStyles.cellEmp }}><div style={printStyles.cellL}>Logro</div><div style={printStyles.cellV}>{accuracy}%</div></div>
         </div>
@@ -560,11 +653,11 @@ function ResultsScreen({ app, setApp, go }) {
       <div style={{ position: "absolute", inset: "70px 32px 20px 32px", display: "grid", gridTemplateColumns: "0.85fr 1.4fr", gap: 24, alignItems: "stretch" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <div style={{ fontFamily: "var(--ed-font-display)", fontWeight: 700, fontSize: 32, background: "linear-gradient(180deg, #fce9a8, #d9a441)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1, marginBottom: 4 }}>
-            ¡Lo lograste!
+            ¡Bien comido!
           </div>
           <char.Component size={176} />
           <div className="ed-body" style={{ fontStyle: "italic", textAlign: "center", maxWidth: 240, fontSize: 13 }}>
-            "{app.studentName || "Campeón"}, cambiaste el agua {res.solved} de {totalEx} veces."
+            "{app.studentName || "Campeón"}, acertaste {res.solved} de {totalEx}."
             <div style={{ marginTop: 4, color: "var(--ed-ink-soft)", fontSize: 12 }}>— {char.name}</div>
           </div>
         </div>
@@ -590,9 +683,9 @@ function ResultsScreen({ app, setApp, go }) {
               <thead>
                 <tr style={{ fontWeight: 700, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ed-ink-dim)", borderBottom: "1px solid rgba(148,120,255,0.3)" }}>
                   <th style={{ textAlign: "left", padding: "6px 8px", width: 30 }}>#</th>
-                  <th style={{ textAlign: "left", padding: "6px 8px" }}>Ronda</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Meta</th>
-                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Acción</th>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>Ítem</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Correcto</th>
+                  <th style={{ textAlign: "right", padding: "6px 8px" }}>Tu respuesta</th>
                   <th style={{ textAlign: "center", padding: "6px 8px" }}>Logro</th>
                 </tr>
               </thead>
@@ -602,18 +695,18 @@ function ResultsScreen({ app, setApp, go }) {
                     <td style={{ padding: "7px 8px", color: "var(--ed-ink-soft)" }}>{e.idx}</td>
                     <td style={{ padding: "7px 8px", fontWeight: 600 }}>{e.emoji} {e.a}</td>
                     <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.correctAnswer}</td>
-                    <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.correctActionLabel}</td>
+                    <td style={{ padding: "7px 8px", textAlign: "right" }}>{e.userAnswer}</td>
                     <td style={{ padding: "7px 8px", textAlign: "center", fontFamily: "var(--ed-font-display)", fontWeight: 700, color: e.isCorrect ? "#2ecc8f" : "#ff6b6b" }}>{e.isCorrect ? "✓" : "✗"}</td>
                   </tr>
                 ))}
-                {(res.log || []).length === 0 && (<tr><td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "var(--ed-ink-soft)", fontStyle: "italic" }}>Sin rondas.</td></tr>)}
+                {(res.log || []).length === 0 && (<tr><td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "var(--ed-ink-soft)", fontStyle: "italic" }}>Sin ejercicios.</td></tr>)}
               </tbody>
             </table>
           </div>
 
           <div style={{ borderTop: "2px solid rgba(242,194,96,0.45)", paddingTop: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, fontFamily: "var(--ed-font-ui)", fontSize: 11 }}>
-            <SummaryCell label="Rondas" value={`${attemptedCount} / ${totalEx}`} />
-            <SummaryCell label="Logradas" value={`${res.solved}`} tone="#2ecc8f" />
+            <SummaryCell label="Ejercicios" value={`${attemptedCount} / ${totalEx}`} />
+            <SummaryCell label="Aciertos" value={`${res.solved}`} tone="#2ecc8f" />
             <SummaryCell label="Estrellas" value={`${res.starsEarned}`} tone="#fce9a8" />
             <SummaryCell label="Logro" value={`${accuracy}%`} tone="#fce9a8" emphasis />
           </div>
