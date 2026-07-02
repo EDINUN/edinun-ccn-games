@@ -74,7 +74,7 @@ por etapa (🫘 → 🌱 → 🌿 → 🪴) sobre un degradado cielo/tierra y el
   cambio de shell coordinado con los demás juegos.
 - `screens.jsx`: `HomeScreen`, `CharacterScreen`, contador de visitas, `CosmosBg`.
   Personalizado: label del tema, subtítulo, categoría y glifos del fondo
-  (semilla/planta/frutos), y la guía por defecto (`quimica`).
+  (semilla/planta/frutos), y la guía por defecto (`geologo`).
 - `game-screens.jsx`: **la mecánica de este juego.** Define `GameScreen`,
   `ResultsScreen` y los componentes `PlantCard` (foto de etapa) y `Draggable`.
 
@@ -112,9 +112,10 @@ Reglas EDINUN que la mecánica respeta (ver `USER.md` y `memory/aprendizajes-de-
 ### Personajes
 
 Catálogo compartido: Luna (astronauta), Bruno (naturalista), Mía (química), Tomi
-(geólogo). **Personaje destacado en el landing y guía por defecto: `naturalista`
-(Bruno)** — encaja con el tema (Bruno es "amigo de plantas y animales"). El niño
-puede elegir otro guía en la pantalla de selección.
+(geólogo). **Personaje destacado en el landing y guía por defecto: `geologo`
+(Tomi)** — la semilla germina en la **tierra/suelo**, dominio del geólogo (así los
+4 personajes quedan repartidos entre los juegos del repo). El niño puede elegir
+otro guía en la pantalla de selección.
 
 ## Contador de visitas
 

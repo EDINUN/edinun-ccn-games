@@ -545,11 +545,11 @@ function HomeScreen({ app, setApp, go }) {
 // 2. SELECCIÓN DE PERSONAJE
 // ─────────────────────────────────────────────────────────────
 function CharacterScreen({ app, setApp, go }) {
-  // Predeterminado de este juego: Bruno (naturalista). El shell arranca con
+  // Predeterminado de este juego: Tomi (geólogo). El shell arranca con
   // character "astronauta", así que tratamos ese valor inicial como "sin elegir"
-  // y mostramos Bruno; si el niño ya eligió otro guía, se respeta.
+  // y mostramos a Tomi; si el niño ya eligió otro guía, se respeta.
   const [sel, setSel] = useState(
-    app.character && app.character !== "astronauta" ? app.character : "naturalista"
+    app.character && app.character !== "astronauta" ? app.character : "geologo"
   );
   const current = CHARACTERS.find((c) => c.id === sel) || CHARACTERS[0];
 
