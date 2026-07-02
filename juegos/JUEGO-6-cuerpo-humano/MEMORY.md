@@ -37,3 +37,41 @@ Bitácora de decisiones de diseño, bugs y resoluciones, en orden cronológico
   R1 (primer sistema), R2 (set de sistemas) y R3 (orden de bandeja). Cumple §12.
 - Añadido al landing (`Misión: Cuerpo Humano`, charId `quimica`) y a
   `memory/audiencia_por_juego.md` (9 años).
+
+## 2026-07-02 — Rediseño mayor: 3 rondas (Rayos X ×2 + Une) con el usuario
+
+El diseño de las 3 mecánicas del 29-jun **se descartó** iterando con el usuario
+(imágenes chiquitas, R1≈R2, la ronda de órganos "salía fea"). Quedó así:
+
+- **R1 y R2 = "Rayos X"** (misma mecánica, 2 veces). Reemplaza el quiz plano: se pasa
+  una lente sobre un `<canvas>` oscuro (`destination-out`) para revelar la ilustración
+  y tocar el nombre. Al responder, badges **✓ verde / ✗ roja** sobre las opciones. Solo
+  usan los **4 aparatos/sistemas con ilustración** (`xray:true`).
+- **R2 vieja "une con líneas" pasó a ser R3** con **imágenes grandes** (nodo 96 px,
+  imagen 80 px) y **líneas de colores** (`MLINE_COLORS`, una por fila; puntitos a
+  juego). El revelado se **mantiene ~3.6 s** (fallo) para poder leerlo.
+- **Se quitó la ronda de órganos (arrastre a silueta)** y sus assets
+  (`silueta-cuerpo.png`, `org-*.png` borrados).
+- **`SYSTEMS` pasó de 6 a 10** = lista completa del libro con **funciones textuales**.
+  R3 (`MATCHPOOL`) rota entre 9 (**Reproductor excluido** con `skipMatch:true`, a
+  pedido del usuario; queda como dato pero no aparece).
+- **Textos:** "sistema" → **"aparato o sistema"** (título R3, enunciado R1/R2, guía,
+  reporte y feedback), porque el libro los agrupa como *Aparato/sistema*. Se quitó el
+  subtítulo "Toca un sistema y luego su función". El ítem de R1/R2 en el reporte se
+  acortó a **"Rayos X"** (antes ocupaba 3 líneas y tapaba las demás filas).
+
+### Imágenes (todas regeneradas por el usuario, iterando el prompt)
+
+- Estilo final: **caricatura coral de cuerpo entero, SIN ROPA**, sistema directo sobre
+  el cuerpo, fondo transparente, cuadrada. Antes probamos gris ("aburrido") y coral
+  fuerte con ropa ("feo") → quedó **peach suave**.
+- **Digestivo y Respiratorio con cabeza de perfil** (a pedido del usuario) para que se
+  vean boca/faringe/laringe; en Digestivo el recto baja hasta el final del tronco.
+- Set final (9): `sis-{digestivo,respiratorio,circulatorio,excretor,oseo,nervioso,
+  muscular,inmunologico,endocrino}.png`. Prompts (ES e EN) entregados al usuario.
+
+### QA
+
+- `pw-j6.js` reescrito al flujo de 3 rondas (R1/R2 rayos X → R3 une); `pw-j6-badge.js`
+  verifica los ✓/✗ al fallar. E2E OK, sin errores de JS (solo `counter.php`/imágenes
+  faltantes en `file://` → fallback esperado).
